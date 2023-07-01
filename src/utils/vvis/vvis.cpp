@@ -1217,7 +1217,7 @@ int main (int argc, char **argv)
 {
 	CommandLine()->CreateCmdLine( argc, argv );
 
-	MathLib_Init( 2.2f, 2.2f, 0.0f, 1.0f, false, false, false, false );
+	MathLib_Init( 2.2f, 2.2f, 0.0f, 1.0f );
 	InstallAllocationFunctions();
 	InstallSpewFunction();
 

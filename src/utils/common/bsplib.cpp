@@ -537,7 +537,7 @@ const char *GetLumpName( unsigned int lumpnum )
 
 // "-hdr" tells us to use the HDR fields (if present) on the light sources.  Also, tells us to write
 // out the HDR lumps for lightmaps, ambient leaves, and lights sources.
-bool g_bHDR = false;
+bool g_bHDR = true;
 
 // Set to true to generate Xbox360 native output files
 static bool g_bSwapOnLoad = false;

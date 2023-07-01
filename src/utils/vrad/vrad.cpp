@@ -115,9 +115,9 @@ qboolean	g_bLowPriority = false;
 qboolean	g_bLogHashData = false;
 bool		g_bNoDetailLighting = false;
 double		g_flStartTime;
-bool		g_bStaticPropLighting = false;
-bool        g_bStaticPropPolys = false;
-bool        g_bTextureShadows = false;
+bool		g_bStaticPropLighting = true;
+bool        g_bStaticPropPolys = true;
+bool        g_bTextureShadows = true;
 bool        g_bDisablePropSelfShadowing = false;
 
 
@@ -2355,7 +2355,7 @@ void VRAD_Finish()
 // WorldCraft interface into vrad).
 void VRAD_Init()
 {
-	MathLib_Init( 2.2f, 2.2f, 0.0f, 2.0f, false, false, false, false );
+	MathLib_Init( 2.2f, 2.2f, 0.0f, 2.0f );
 	InstallAllocationFunctions();
 	InstallSpewFunction();
 }
@@ -2368,13 +2368,13 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 	int mapArg = -1;
 
 	// default to LDR
-	SetHDRMode( false );
+	SetHDRMode( true );
 	int i;
 	for( i=1 ; i<argc ; i++ )
 	{
-		if ( !Q_stricmp( argv[i], "-StaticPropLighting" ) )
+		if ( !Q_stricmp( argv[i], "-NoStaticPropLighting" ) )
 		{
-			g_bStaticPropLighting = true;
+			g_bStaticPropLighting = false;
 		}
 		else if ( !stricmp( argv[i], "-StaticPropNormals" ) )
 		{
@@ -2382,9 +2382,9 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		}
 		else if ( !stricmp( argv[i], "-OnlyStaticProps" ) )
 		{
-			g_bOnlyStaticProps = true;
+			g_bOnlyStaticProps = false;
 		}
-		else if ( !Q_stricmp( argv[i], "-StaticPropPolys" ) )
+		else if ( !Q_stricmp( argv[i], "-NoStaticPropPolys" ) )
 		{
 			g_bStaticPropPolys = true;
 		}
@@ -2392,9 +2392,9 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		{
 			g_bDisablePropSelfShadowing = true;
 		}
-		else if ( !Q_stricmp( argv[i], "-textureshadows" ) )
+		else if ( !Q_stricmp( argv[i], "-notextureshadows" ) )
 		{
-			g_bTextureShadows = true;
+			g_bTextureShadows = false;
 		}
 		else if ( !strcmp(argv[i], "-dump") )
 		{
@@ -2847,11 +2847,11 @@ void PrintUsage( int argc, char **argv )
 		"  -LargeDispSampleRadius: This can be used if there are splotches of bounced light\n"
 		"                          on terrain. The compile will take longer, but it will gather\n"
 		"                          light across a wider area.\n"
-        "  -StaticPropLighting   : generate backed static prop vertex lighting\n"
-        "  -StaticPropPolys   : Perform shadow tests of static props at polygon precision\n"
+        "  -NoStaticPropLighting   : Disables generating backed static prop vertex lighting\n"
+        "  -NoStaticPropPolys   : Disables performing shadow tests of static props at polygon precision\n"
         "  -OnlyStaticProps   : Only perform direct static prop lighting (vrad debug option)\n"
 		"  -StaticPropNormals : when lighting static props, just show their normal vector\n"
-		"  -textureshadows : Allows texture alpha channels to block light - rays intersecting alpha surfaces will sample the texture\n"
+		"  -NoTextureShadows : Disables texture alpha channels blocking light - rays intersecting alpha surfaces will sample the texture\n"
 		"  -noskyboxrecurse : Turn off recursion into 3d skybox (skybox shadows on world)\n"
 		"  -nossprops      : Globally disable self-shadowing on static props\n"
 		"\n"
