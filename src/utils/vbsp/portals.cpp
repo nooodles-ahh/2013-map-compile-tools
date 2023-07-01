@@ -920,7 +920,7 @@ void FindAreas_r (node_t *node)
 	FloodAreas_r (node, NULL);
 }
 
-
+extern qboolean	leaktest;
 void ReportAreaportalLeak( tree_t *tree, node_t *node )
 {
 	portal_t *p, *pStart = NULL;
@@ -967,6 +967,12 @@ void ReportAreaportalLeak( tree_t *tree, node_t *node )
 			// write the linefile that goes from pBest to pStart
 			AreaportalLeakFile( tree, pStart, pBest, pBest->nodes[s] );
 		}
+	}
+
+	if ( leaktest )
+	{
+		Warning( ( "--- AREAPORTAL LEAK ---\n" ) );
+		exit( 0 );
 	}
 }
 

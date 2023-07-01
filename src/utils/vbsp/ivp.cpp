@@ -1316,13 +1316,7 @@ static void BuildWorldPhysModel( CUtlVector<CPhysCollisionEntry *> &collisionLis
 	ConvertWorldBrushesToPhysCollide( collisionList, shrinkSize, mergeTolerance, MASK_SOLID );
 	ConvertWorldBrushesToPhysCollide( collisionList, shrinkSize, mergeTolerance, CONTENTS_PLAYERCLIP );
 	ConvertWorldBrushesToPhysCollide( collisionList, shrinkSize, mergeTolerance, CONTENTS_MONSTERCLIP );
-
-	if ( !g_bNoVirtualMesh && Disp_HasPower4Displacements() )
-	{
-		Warning("WARNING: Map using power 4 displacements, terrain physics cannot be compressed, map will need additional memory and CPU.\n");
-		g_bNoVirtualMesh = true;
-	}
-
+	
 	// if there's terrain, save it off as a static mesh/polysoup
 	if ( g_bNoVirtualMesh || !physcollision->SupportsVirtualMesh() )
 	{
