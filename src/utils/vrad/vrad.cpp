@@ -19,6 +19,12 @@
 #include "tools_minidump.h"
 #include "loadcmdline.h"
 #include "byteswap.h"
+#include "vtf/vtf.h"
+#include "utilmatlib.h"
+#include "materialsystem/imaterialsystem.h"
+#include "materialsystem/imaterial.h"
+#include "materialsystem/imaterialvar.h"
+#include "utlbuffer.h"
 
 #define ALLOWDEBUGOPTIONS (0 || _DEBUG)
 
@@ -119,6 +125,7 @@ bool		g_bStaticPropLighting = true;
 bool        g_bStaticPropPolys = true;
 bool        g_bTextureShadows = true;
 bool        g_bDisablePropSelfShadowing = false;
+bool		g_bEnableSkyboxSampling = false;
 
 
 CUtlVector<byte> g_FacesVisibleToLights;
@@ -177,10 +184,7 @@ typedef struct
 	char	*filename;
 } texlight_t;
 
-#define	MAX_TEXLIGHTS	128
-
-texlight_t	texlights[MAX_TEXLIGHTS];
-int			num_texlights;
+CUtlVector<texlight_t> texlights( 0, 128 );
 
 /*
 ============
@@ -240,8 +244,6 @@ void ReadLightFile (char *filename)
 		{
 			char szTexlight[256];
 			Vector value;
-			if ( num_texlights == MAX_TEXLIGHTS )
-				Error ("Too many texlights, max = %d", MAX_TEXLIGHTS);
 
 			int argCnt = sscanf (scan, "%s ",szTexlight );
 
@@ -255,7 +257,7 @@ void ReadLightFile (char *filename)
 			LightForString( scan + strlen( szTexlight ) + 1, value );
 
 			int j = 0;
-			for( j; j < num_texlights; j ++ )
+			for( j; j < texlights.Count(); j ++ )
 			{
 				if ( strcmp( texlights[j].name, szTexlight ) == 0 )
 				{
@@ -279,12 +281,13 @@ void ReadLightFile (char *filename)
 					break;
 				}
 			}
+			if ( j >= texlights.Count() )
+				j = texlights.AddToTail();
+
 			strcpy( texlights[j].name, szTexlight );
 			VectorCopy( value, texlights[j].value );
 			texlights[j].filename = filename;
 			file_texlights ++;
-			
-			num_texlights = max( num_texlights, j + 1 );
 		}
 	}
 	qprintf ( "[%i texlights parsed from '%s']\n\n", file_texlights, filename);
@@ -340,7 +343,7 @@ void LightForTexture( const char *name, Vector& result )
 		}
 	}
 
-	for (i=0 ; i<num_texlights ; i++)
+	for (i=0 ; i < texlights.Count(); i++)
 	{
 		if (!Q_strcasecmp (name, texlights[i].name))
 		{
@@ -667,7 +670,7 @@ void MakePatchForFace (int fn, winding_t *w)
 entity_t *EntityForModel (int modnum)
 {
 	int		i;
-	char	*s;
+	const char	*s;
 	char	name[16];
 
 	sprintf (name, "*%i", modnum);
@@ -900,7 +903,8 @@ void SubdividePatch( int ndxPatch )
 
 	if( area1 == 0 || area2 == 0 )
 	{
-		Msg( "zero area child patch\n" );
+		Vector v0 = patch->origin;
+		Msg( "zero area child patch near %.2f %.2f %.2f\n", v0.x, v0.y, v0.z );
 		return;
 	}
 
@@ -1261,6 +1265,343 @@ void MakeScales ( int ndxPatch, transfer_t *all_transfers )
 	ThreadUnlock ();
 }
 
+IVTFTexture *g_pSkyboxCube = nullptr;
+
+//-----------------------------------------------------------------------------
+// Loads VTF files
+//-----------------------------------------------------------------------------
+static bool LoadSrcVTFFiles( IVTFTexture *pSrcVTFTextures[6], const char *pSkyboxMaterialBaseName,
+	int *pUnionTextureFlags )
+{
+	const char *facingName[6] = { "rt", "lf", "bk", "ft", "up", "dn" };
+	int i;
+	for ( i = 0; i < 6; i++ )
+	{
+		char srcMaterialName[1024];
+		sprintf( srcMaterialName, "%s%s", pSkyboxMaterialBaseName, facingName[i] );
+
+		IMaterial *pSkyboxMaterial = g_pMaterialSystem->FindMaterial( srcMaterialName, "skybox" );
+		//IMaterialVar *pSkyTextureVar = pSkyboxMaterial->FindVar( bHDR ? "$hdrbasetexture" : "$basetexture", NULL ); //, bHDR ? false : true );
+		IMaterialVar *pSkyTextureVar = pSkyboxMaterial->FindVar( "$basetexture", NULL ); // Since we're setting it to black anyway, just use $basetexture for HDR
+		const char *vtfName = pSkyTextureVar->GetStringValue();
+		char srcVTFFileName[MAX_PATH];
+		Q_snprintf( srcVTFFileName, MAX_PATH, "materials/%s.vtf", vtfName );
+
+		CUtlBuffer buf;
+		if ( !g_pFullFileSystem->ReadFile( srcVTFFileName, NULL, buf ) )
+		{
+			{
+				return false;
+			}
+		}
+
+		pSrcVTFTextures[i] = CreateVTFTexture();
+		if ( !pSrcVTFTextures[i]->Unserialize( buf ) )
+		{
+			Warning( "*** Error unserializing skybox texture: %s\n", pSkyboxMaterialBaseName );
+			return false;
+		}
+
+		*pUnionTextureFlags |= pSrcVTFTextures[i]->Flags();
+		int flagsNoAlpha = pSrcVTFTextures[i]->Flags() & ~( TEXTUREFLAGS_EIGHTBITALPHA | TEXTUREFLAGS_ONEBITALPHA );
+		int flagsFirstNoAlpha = pSrcVTFTextures[0]->Flags() & ~( TEXTUREFLAGS_EIGHTBITALPHA | TEXTUREFLAGS_ONEBITALPHA );
+
+		// NOTE: texture[0] is a side texture that could be 1/2 height, so allow this and also allow 4x4 faces
+		if ( ( ( pSrcVTFTextures[i]->Width() != pSrcVTFTextures[0]->Width() ) && ( pSrcVTFTextures[i]->Width() != 4 ) ) ||
+			( ( pSrcVTFTextures[i]->Height() != pSrcVTFTextures[0]->Height() ) && ( pSrcVTFTextures[i]->Height() != pSrcVTFTextures[0]->Height() * 2 ) && ( pSrcVTFTextures[i]->Height() != 4 ) ) ||
+			( flagsNoAlpha != flagsFirstNoAlpha ) )
+		{
+			Warning( "*** Error: Skybox vtf files for %s weren't compiled with the same size texture and/or same flags!\n", pSkyboxMaterialBaseName );
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static const char *FindSkyboxMaterialName( void )
+{
+	for ( int i = 0; i < num_entities; i++ )
+	{
+		const char *pEntity = ValueForKey( &entities[i], "classname" );
+		if ( !strcmp( pEntity, "worldspawn" ) )
+		{
+			return ValueForKey( &entities[i], "skyname" );
+		}
+	}
+	return NULL;
+}
+
+#define DEFAULT_CUBEMAP_SIZE 64
+
+void LoadSkyboxCubeMap()
+{
+	if ( !g_bEnableSkyboxSampling )
+		return;
+
+	const char *pSkyboxBaseName = FindSkyboxMaterialName();
+
+	if ( !pSkyboxBaseName )
+	{
+		return;
+	}
+
+	char skyboxMaterialName[MAX_PATH];
+	Q_snprintf( skyboxMaterialName, MAX_PATH, "skybox/%s", pSkyboxBaseName );
+
+	IVTFTexture *pSrcVTFTextures[6];
+
+	int unionTextureFlags = 0;
+	if ( !LoadSrcVTFFiles( pSrcVTFTextures, skyboxMaterialName, &unionTextureFlags ) )
+	{
+		Warning( "Can't load skybox file %s for accurate ambient lighting!\n", skyboxMaterialName );
+		return;
+	}
+
+	// Figure out the mip differences between the two textures
+	int iMipLevelOffset = 0;
+	int tmp = pSrcVTFTextures[0]->Width();
+	while ( tmp > DEFAULT_CUBEMAP_SIZE )
+	{
+		iMipLevelOffset++;
+		tmp >>= 1;
+	}
+
+	// Create the destination cubemap
+	IVTFTexture *pDstCubemap = CreateVTFTexture();
+	pDstCubemap->Init( DEFAULT_CUBEMAP_SIZE, DEFAULT_CUBEMAP_SIZE, 1,
+		pSrcVTFTextures[0]->Format(), unionTextureFlags | TEXTUREFLAGS_ENVMAP,
+		pSrcVTFTextures[0]->FrameCount() );
+
+	// First iterate over all frames
+	for ( int iFrame = 0; iFrame < pDstCubemap->FrameCount(); ++iFrame )
+	{
+		// Next iterate over all normal cube faces (we know there's 6 cause it's an envmap)
+		for ( int iFace = 0; iFace < 6; ++iFace )
+		{
+			// Finally, iterate over all mip levels in the *destination*
+			for ( int iMip = 0; iMip < pDstCubemap->MipCount(); ++iMip )
+			{
+				// Copy the bits from the source images into the cube faces
+				unsigned char *pSrcBits = pSrcVTFTextures[iFace]->ImageData( iFrame, 0, iMip + iMipLevelOffset );
+				unsigned char *pDstBits = pDstCubemap->ImageData( iFrame, iFace, iMip );
+				int iSize = pDstCubemap->ComputeMipSize( iMip );
+				int iSrcMipSize = pSrcVTFTextures[iFace]->ComputeMipSize( iMip + iMipLevelOffset );
+
+				if ( ( pSrcVTFTextures[iFace]->Width() == 4 ) && ( pSrcVTFTextures[iFace]->Height() == 4 ) ) // If texture is 4x4 square
+				{
+					// Force mip level 2 to get the 1x1 face
+					unsigned char *pSrcBits = pSrcVTFTextures[iFace]->ImageData( iFrame, 0, 2 );
+					int iSrcMipSize = pSrcVTFTextures[iFace]->ComputeMipSize( 2 );
+
+					// Replicate 1x1 mip level across entire face
+					//memset( pDstBits, 0, iSize ); 
+					for ( int i = 0; i < ( iSize / iSrcMipSize ); i++ )
+					{
+						memcpy( pDstBits + ( i * iSrcMipSize ), pSrcBits, iSrcMipSize );
+					}
+				}
+				else if ( pSrcVTFTextures[iFace]->Width() == pSrcVTFTextures[iFace]->Height() ) // If texture is square
+				{
+					if ( iSrcMipSize != iSize )
+					{
+						Warning( "%s - ERROR! Cannot copy square face for default cubemap! iSrcMipSize(%d) != iSize(%d)\n", skyboxMaterialName, iSrcMipSize, iSize );
+						memset( pDstBits, 0, iSize );
+					}
+					else
+					{
+						// Just copy the mip level
+						memcpy( pDstBits, pSrcBits, iSize );
+					}
+				}
+				else if ( pSrcVTFTextures[iFace]->Width() == pSrcVTFTextures[iFace]->Height() * 2 ) // If texture is rectangle 2x wide
+				{
+					int iMipWidth, iMipHeight, iMipDepth;
+					pDstCubemap->ComputeMipLevelDimensions( iMip, &iMipWidth, &iMipHeight, &iMipDepth );
+					if ( ( iMipHeight > 1 ) && ( iSrcMipSize * 2 != iSize ) )
+					{
+						Warning( "%s - ERROR building default cube map! %d*2 != %d\n", skyboxMaterialName, iSrcMipSize, iSize );
+						memset( pDstBits, 0, iSize );
+					}
+					else
+					{
+						// Copy row at a time and repeat last row
+						memcpy( pDstBits, pSrcBits, iSize / 2 );
+						//memcpy( pDstBits + iSize/2, pSrcBits, iSize/2 );
+						int nSrcRowSize = pSrcVTFTextures[iFace]->RowSizeInBytes( iMip + iMipLevelOffset );
+						int nDstRowSize = pDstCubemap->RowSizeInBytes( iMip );
+						if ( nSrcRowSize != nDstRowSize )
+						{
+							Warning( "%s - ERROR building default cube map! nSrcRowSize(%d) != nDstRowSize(%d)!\n", skyboxMaterialName, nSrcRowSize, nDstRowSize );
+							memset( pDstBits, 0, iSize );
+						}
+						else
+						{
+							for ( int i = 0; i < ( iSize / 2 / nSrcRowSize ); i++ )
+							{
+								memcpy( pDstBits + iSize / 2 + i * nSrcRowSize, pSrcBits + iSrcMipSize - nSrcRowSize, nSrcRowSize );
+							}
+						}
+					}
+				}
+				else
+				{
+					// ERROR! This code only supports square and rectangluar 2x wide
+					Warning( "%s - Couldn't create default cubemap because texture res is %dx%d\n", skyboxMaterialName, pSrcVTFTextures[iFace]->Width(), pSrcVTFTextures[iFace]->Height() );
+					memset( pDstBits, 0, iSize );
+					return;
+				}
+			}
+		}
+	}
+
+	//ImageFormat originalFormat = pDstCubemap->Format();
+	{
+		// Convert the cube to format that we can apply tools to it...
+		pDstCubemap->ConvertImageFormat( IMAGE_FORMAT_DEFAULT, false );
+	}
+
+	// Fixup the cubemap facing
+	pDstCubemap->FixCubemapFaceOrientation();
+
+	// Now that the bits are in place, compute the spheremaps...
+	pDstCubemap->GenerateSpheremap();
+
+	{
+		// Convert the cubemap to the final format
+		pDstCubemap->ConvertImageFormat( IMAGE_FORMAT_RGB888, false );
+	}
+
+	g_pSkyboxCube = pDstCubemap;
+}
+
+void convert_xyz_to_cube_uv( float x, float y, float z, int *index, float *u, float *v )
+{
+	float absX = fabs( x );
+	float absY = fabs( y );
+	float absZ = fabs( z );
+
+	int isXPositive = x > 0 ? 1 : 0;
+	int isYPositive = y > 0 ? 1 : 0;
+	int isZPositive = z > 0 ? 1 : 0;
+
+	float maxAxis = FLT_EPSILON, uc = FLT_EPSILON, vc = FLT_EPSILON;
+
+	// POSITIVE X
+	if ( isXPositive && absX >= absY && absX >= absZ ) {
+		// u (0 to 1) goes from +z to -z
+		// v (0 to 1) goes from -y to +y
+		maxAxis = absX;
+		uc = -z;
+		vc = y;
+		*index = 0;
+	}
+	// NEGATIVE X
+	if ( !isXPositive && absX >= absY && absX >= absZ ) {
+		// u (0 to 1) goes from -z to +z
+		// v (0 to 1) goes from -y to +y
+		maxAxis = absX;
+		uc = z;
+		vc = y;
+		*index = 1;
+	}
+	// POSITIVE Y
+	if ( isYPositive && absY >= absX && absY >= absZ ) {
+		// u (0 to 1) goes from -x to +x
+		// v (0 to 1) goes from +z to -z
+		maxAxis = absY;
+		uc = x;
+		vc = -z;
+		*index = 2;
+	}
+	// NEGATIVE Y
+	if ( !isYPositive && absY >= absX && absY >= absZ ) {
+		// u (0 to 1) goes from -x to +x
+		// v (0 to 1) goes from -z to +z
+		maxAxis = absY;
+		uc = x;
+		vc = z;
+		*index = 3;
+	}
+	// POSITIVE Z
+	if ( isZPositive && absZ >= absX && absZ >= absY ) {
+		// u (0 to 1) goes from -x to +x
+		// v (0 to 1) goes from -y to +y
+		maxAxis = absZ;
+		uc = x;
+		vc = y;
+		*index = 4;
+	}
+	// NEGATIVE Z
+	if ( !isZPositive && absZ >= absX && absZ >= absY ) {
+		// u (0 to 1) goes from +x to -x
+		// v (0 to 1) goes from -y to +y
+		maxAxis = absZ;
+		uc = -x;
+		vc = y;
+		*index = 5;
+	}
+
+	// Convert range from -1 to 1 to 0 to 1
+	*u = 0.5f * ( uc / maxAxis + 1.0f );
+	*v = 0.5f * ( vc / maxAxis + 1.0f );
+}
+
+void SampleSkyboxCubeSSE( FourVectors const &vNormals, FourVectors &vColors )
+{
+	Vector  vecColors[4] = { Vector( 1.f ) };
+	if ( g_pSkyboxCube != nullptr )
+	{
+		for ( int i = 0; i < 4; i++ )
+		{
+			int iFace = 0;
+			float flU, flV;
+			Vector vecNormal = vNormals.Vec( i );
+			convert_xyz_to_cube_uv( vecNormal.x, vecNormal.y, vecNormal.z, &iFace, &flU, &flV );
+			flU = Clamp( flU, 0.f, 1.f );
+			flV = Clamp( flV, 0.f, 1.f );
+
+			const unsigned char *pData = g_pSkyboxCube->ImageData( 0, iFace, 0 );
+			int iU, iV;
+			iU = RoundFloatToInt( flU * g_pSkyboxCube->Width() );
+			iV = RoundFloatToInt( flV * g_pSkyboxCube->Height() );
+
+			const unsigned char cPixelR = pData[0 + ( iU * 3 ) + ( iV * g_pSkyboxCube->Width() )];
+			const unsigned char cPixelG = pData[1 + ( iU * 3 ) + ( iV * g_pSkyboxCube->Width() )];
+			const unsigned char cPixelB = pData[2 + ( iU * 3 ) + ( iV * g_pSkyboxCube->Width() )];
+
+			vecColors[i].Init( cPixelR / 255.f, cPixelG / 255.f, cPixelB / 255.f );
+		}
+	}
+
+	vColors = FourVectors( vecColors[0], vecColors[1], vecColors[2], vecColors[3] );
+}
+
+void SampleSkyboxCube( const Vector &vecNormal, Vector &vColor )
+{
+	if ( g_pSkyboxCube != nullptr )
+	{
+		int iFace = 0;
+		float flU, flV;
+		convert_xyz_to_cube_uv( vecNormal.x, vecNormal.y, vecNormal.z, &iFace, &flU, &flV );
+		flU = Clamp( flU, 0.f, 1.f );
+		flV = Clamp( flV, 0.f, 1.f );
+
+		const unsigned char *pData = g_pSkyboxCube->ImageData( 0, iFace, 0 );
+		int iU, iV;
+		iU = RoundFloatToInt( flU * g_pSkyboxCube->Width() );
+		iV = RoundFloatToInt( flV * g_pSkyboxCube->Height() );
+
+		const unsigned char cPixelR = pData[0 + ( iU * 3 ) + ( iV * g_pSkyboxCube->Width() )];
+		const unsigned char cPixelG = pData[1 + ( iU * 3 ) + ( iV * g_pSkyboxCube->Width() )];
+		const unsigned char cPixelB = pData[2 + ( iU * 3 ) + ( iV * g_pSkyboxCube->Width() )];
+
+		vColor.Init( cPixelR / 255.f, cPixelG / 255.f, cPixelB / 255.f );
+	}
+	else
+		vColor.Init( 1.f, 1.f, 1.f );
+}
+
 /*
 =============
 WriteWorld
@@ -1306,7 +1647,7 @@ void WriteWorld (char *name, int iBump)
 	g_pFileSystem->Close( out );
 }
 
-void WriteRTEnv (char *name)
+void WriteRTEnv (const char *name)
 {
 	FileHandle_t out;
 
@@ -1827,6 +2168,8 @@ void RadWorld_Start()
 
 	// set up sky cameras
 	ProcessSkyCameras();
+
+	LoadSkyboxCubeMap();
 }
 
 
@@ -2337,6 +2680,12 @@ void VRAD_Finish()
 		}
 	}
 
+	if ( g_pSkyboxCube )
+	{
+		DestroyVTFTexture( g_pSkyboxCube );
+		g_pSkyboxCube = nullptr;
+	}
+
 	CloseDispLuxels();
 
 	StaticPropMgr()->Shutdown();
@@ -2683,6 +3032,48 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 			}
 		}
 
+		else if ( !Q_stricmp( argv[i], "-ambientocclusion" ) )
+		{
+			g_bNoAO = false;
+		}
+		else if ( !Q_stricmp( argv[i], "-aoscale" ) )
+		{
+			if ( ++i < argc )
+			{
+				g_flAOScale = (float)atof( argv[i] );
+				if ( g_flAOScale < 0.0f )
+				{
+					Warning( "Error: expected positive value after '-aoscale'\n" );
+					return -1;
+				}
+			}
+			else
+			{
+				Warning( "Error: expected a value after '-aoscale'\n" );
+				return -1;
+			}
+		}
+		else if ( !Q_stricmp( argv[i], "-aosamples" ) )
+		{
+			if ( ++i < argc )
+			{
+				g_nAOSamples = (int)atoi( argv[i] );
+				if ( g_nAOSamples < 1 )
+				{
+					Warning( "Error: expected positive value after '-aosamples'\n" );
+					return -1;
+				}
+			}
+			else
+			{
+				Warning( "Error: expected a value after '-aosamples'\n" );
+				return -1;
+			}
+		}
+		else if ( !Q_stricmp( argv[i], "-softencosine" ) )
+		{
+			g_bNoSoften = false;
+		}
 #if ALLOWDEBUGOPTIONS
 		else if (!Q_stricmp(argv[i],"-scale"))
 		{
@@ -2854,6 +3245,7 @@ void PrintUsage( int argc, char **argv )
 		"  -NoTextureShadows : Disables texture alpha channels blocking light - rays intersecting alpha surfaces will sample the texture\n"
 		"  -noskyboxrecurse : Turn off recursion into 3d skybox (skybox shadows on world)\n"
 		"  -nossprops      : Globally disable self-shadowing on static props\n"
+		"  -AllowSkyboxSample : Mulitiply the ambient light color by the color of the 2D skybox texture\n"
 		"\n"
 #if 1 // Disabled for the initial SDK release with VMPI so we can get feedback from selected users.
 		);
@@ -2911,6 +3303,11 @@ int RunVRAD( int argc, char **argv )
 	CmdLib_InitFileSystem( argv[ i ] );
 	Q_FileBase( source, source, sizeof( source ) );
 
+	static char	materialPath[1024];
+	sprintf( materialPath, "%smaterials", gamedir );
+	InitMaterialSystem( materialPath, CmdLib_GetFileSystemFactory() );
+	Msg( "materialPath: %s\n", materialPath );
+
 	VRAD_LoadBSP( argv[i] );
 
 	if ( (! onlydetail) && (! g_bOnlyStaticProps ) )
@@ -2925,6 +3322,7 @@ int RunVRAD( int argc, char **argv )
 	VMPI_SetCurrentStage( "master done" );
 
 	DeleteCmdLine( argc, argv );
+	ShutdownMaterialSystem();
 	CmdLib_Cleanup();
 	return 0;
 }

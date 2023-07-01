@@ -385,6 +385,7 @@ inline byte PVSCheck( const byte *pvs, int iCluster )
 
 // outputs 1 in fractionVisible if no occlusion, 0 if full occlusion, and in-between values
 void TestLine( FourVectors const& start, FourVectors const& stop, fltx4 *pFractionVisible, int static_prop_index_to_ignore=-1);
+void TestLine_IgnoreSky( FourVectors const &start, FourVectors const &stop, fltx4 *pFractionVisible, int static_prop_index_to_ignore = -1 );
 
 // returns 1 if the ray sees the sky, 0 if it doesn't, and in-between values for partial coverage
 void TestLine_DoesHitSky( FourVectors const& start, FourVectors const& stop,
@@ -610,5 +611,14 @@ extern DispTested_t s_DispTested[MAX_TOOL_THREADS+1];
 IVradStaticPropMgr* StaticPropMgr();
 
 extern float ComputeCoverageFromTexture( float b0, float b1, float b2, int32 hitID );
+
+extern bool g_bNoSoften;
+extern bool g_bNoAO;
+extern int g_nAOSamples;
+extern float g_flAOScale;
+
+void SampleSkyboxCubeSSE( FourVectors const &vNormals, FourVectors &vColors );
+void SampleSkyboxCube( const Vector &vNormal, Vector &vColor );
+
 
 #endif // VRAD_H
