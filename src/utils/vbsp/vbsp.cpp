@@ -64,6 +64,7 @@ bool		g_bPropperStripEntities = false;
 float		g_defaultLuxelSize = DEFAULT_LUXEL_SIZE;
 float		g_luxelScale = 1.0f;
 float		g_minLuxelScale = 1.0f;
+float		g_maxLuxelScale = 4096.0f;
 bool		g_BumpAll = false;
 
 int			g_nDXLevel = 0; // default dxlevel if you don't specify it on the command-line.
@@ -1082,6 +1083,13 @@ int RunVBSP( int argc, char **argv )
 			g_minLuxelScale = atof( argv[i+1] );
 			if (g_minLuxelScale < 1)
 				g_minLuxelScale = 1;
+			i++;
+		}
+		else if ( !strcmp( argv[i], "-maxluxelscale" ) )
+		{
+			g_maxLuxelScale = atof( argv[i + 1] );
+			if ( g_maxLuxelScale < 1 )
+				g_maxLuxelScale = 1;
 			i++;
 		}
 		else if( !Q_stricmp( argv[i], "-dxlevel" ) )

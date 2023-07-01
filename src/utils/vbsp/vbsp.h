@@ -168,6 +168,7 @@ extern mapdispinfo_t    mapdispinfo[MAX_MAP_DISPINFO];
 extern float			g_defaultLuxelSize;
 extern float			g_luxelScale;
 extern float			g_minLuxelScale;
+extern float			g_maxLuxelScale;
 extern bool				g_BumpAll;
 extern int				g_nDXLevel;
 

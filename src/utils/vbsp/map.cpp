@@ -3003,10 +3003,7 @@ ChunkFileResult_t LoadSideKeyCallback(const char *szKey, const char *szValue, Lo
 			pSideInfo->td.lightmapWorldUnitsPerLuxel = g_defaultLuxelSize; 
 		}
 		pSideInfo->td.lightmapWorldUnitsPerLuxel *= g_luxelScale;
-		if (pSideInfo->td.lightmapWorldUnitsPerLuxel < g_minLuxelScale)
-		{
-			pSideInfo->td.lightmapWorldUnitsPerLuxel = g_minLuxelScale;
-		}
+		pSideInfo->td.lightmapWorldUnitsPerLuxel = Clamp( pSideInfo->td.lightmapWorldUnitsPerLuxel, g_minLuxelScale, g_maxLuxelScale );
 	}
 	else if (!stricmp(szKey, "contents"))
 	{
