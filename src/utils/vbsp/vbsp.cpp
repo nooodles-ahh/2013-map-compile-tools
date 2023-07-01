@@ -674,6 +674,7 @@ void SetOccluderArea( int nOccluder, int nArea, int nEntityNum )
 	{
 		g_OccluderData[nOccluder].area = nArea;
 	}
+	/*
 	else if ( (nArea != 0) && (g_OccluderData[nOccluder].area != nArea) )
 	{
 		const char *pTargetName = ValueForKey( &entities[nEntityNum], "targetname" );
@@ -682,7 +683,7 @@ void SetOccluderArea( int nOccluder, int nArea, int nEntityNum )
 			pTargetName = "<no name>";
 		}
 		Warning("Occluder \"%s\" straddles multiple areas. This is invalid!\n", pTargetName );
-	}
+	}*/
 }
 
 
