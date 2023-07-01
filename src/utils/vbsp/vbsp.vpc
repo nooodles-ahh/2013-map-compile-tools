@@ -14,7 +14,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories		"$BASE,..\common,..\vmpi"
-		$PreprocessorDefinitions			"$BASE;MACRO_MATHLIB;PROTECTED_THINGS_DISABLE"
+		$PreprocessorDefinitions			"$BASE;MACRO_MATHLIB;PROTECTED_THINGS_DISABLE;PARALLAX_CORRECTED_CUBEMAPS"
 	}
 
 	$Linker
@@ -98,6 +98,7 @@ $Project "Vbsp"
 		$File	"manifest.h"
 		$File	"materialpatch.h"
 		$File	"materialsub.h"
+		$File	"matrixinvert.h"
 		$File	"..\common\scratchpad_helpers.h"
 		$File	"vbsp.h"
 		$File	"worldvertextransitionfixup.h"

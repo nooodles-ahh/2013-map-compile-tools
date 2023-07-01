@@ -607,7 +607,12 @@ void SaveVertexNormals( void );
 
 //=============================================================================
 // cubemap.cpp
-void Cubemap_InsertSample( const Vector& origin, int size );
+#ifdef PARALLAX_CORRECTED_CUBEMAPS
+extern char *g_pParallaxObbStrs[MAX_MAP_CUBEMAPSAMPLES];
+void Cubemap_InsertSample( const Vector &origin, int size, char *pParallaxObbStr );
+#else
+void Cubemap_InsertSample( const Vector &origin, int size );
+#endif
 void Cubemap_CreateDefaultCubemaps( void );
 void Cubemap_SaveBrushSides( const char *pSideListStr );
 void Cubemap_FixupBrushSidesMaterials( void );
