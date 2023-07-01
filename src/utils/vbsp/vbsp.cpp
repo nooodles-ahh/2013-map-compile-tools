@@ -57,6 +57,9 @@ bool		g_DisableWaterLighting = false;
 bool		g_bAllowDetailCracks = false;
 bool		g_bNoVirtualMesh = false;
 
+bool		g_bPropperInsertAllAsStatic = false;
+bool		g_bPropperStripEntities = false;
+
 float		g_defaultLuxelSize = DEFAULT_LUXEL_SIZE;
 float		g_luxelScale = 1.0f;
 float		g_minLuxelScale = 1.0f;
@@ -1136,6 +1139,14 @@ int RunVBSP( int argc, char **argv )
 		else if ( !Q_stricmp( argv[i], "-FullMinidumps" ) )
 		{
 			EnableFullMinidumps( true );
+		}
+		else if ( !Q_stricmp( argv[i], "-defaultproppermodelsstatic" ) )
+		{
+			g_bPropperInsertAllAsStatic = true;
+		}
+		else if ( !Q_stricmp( argv[i], "-strippropperentities" ) )
+		{
+			g_bPropperStripEntities = true;
 		}
 		else if ( !Q_stricmp( argv[i], "-embed" ) && i < argc - 1 )
 		{
