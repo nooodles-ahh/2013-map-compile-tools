@@ -57,6 +57,7 @@ bool		g_DisableWaterLighting = false;
 bool		g_bAllowDetailCracks = false;
 bool		g_bNoVirtualMesh = false;
 
+bool		g_bNoDefaultCubemaps = false;
 bool		g_bPropperInsertAllAsStatic = false;
 bool		g_bPropperStripEntities = false;
 
@@ -862,7 +863,8 @@ void ProcessModels (void)
 	}
 
 	// Turn the skybox into a cubemap in case we don't build env_cubemap textures.
-	Cubemap_CreateDefaultCubemaps();
+	if ( !g_bNoDefaultCubemaps )
+		Cubemap_CreateDefaultCubemaps();
 	EndBSPFile ();
 }
 
@@ -1139,6 +1141,10 @@ int RunVBSP( int argc, char **argv )
 		else if ( !Q_stricmp( argv[i], "-FullMinidumps" ) )
 		{
 			EnableFullMinidumps( true );
+		}
+		else if ( !Q_stricmp( argv[i], "-nodefaultcubemap" ) )
+		{
+			g_bNoDefaultCubemaps = true;
 		}
 		else if ( !Q_stricmp( argv[i], "-defaultproppermodelsstatic" ) )
 		{
