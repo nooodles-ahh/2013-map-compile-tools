@@ -17,7 +17,7 @@
 ### Replicated Slammin' features
 - [x] Enabled SSE2
 - [ ] Properly support power of 4 displacements _??? I've removed the warning, but no idea what was actually changed_
-- [ ] Added missing content types to csg.cpp
+- [x] Added missing content types to csg.cpp
 - [x] `-maxluxelscale`, lets you limit the maximum luxel scale in your map
 - [x] Detail brushes now preserve their smoothing group
 - [ ] Stripped out .map displacement parser, you can't export .map files with dispinfo, this has been obsolete for over 15 years
