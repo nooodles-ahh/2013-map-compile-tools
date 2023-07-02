@@ -3096,6 +3096,20 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		{
 			g_bEnableSkyboxSampling = true;
 		}
+		else if ( !Q_stricmp( argv[i], "-ambient" ) )
+		{
+			if ( i + 3 < argc )
+			{
+				ambient[0] = (float)atof( argv[++i] ) * 128;
+				ambient[1] = (float)atof( argv[++i] ) * 128;
+				ambient[2] = (float)atof( argv[++i] ) * 128;
+			}
+			else
+			{
+				Warning( "Error: expected three color values after '-ambient'\n" );
+				return -1;
+			}
+		}
 #if ALLOWDEBUGOPTIONS
 		else if (!Q_stricmp(argv[i],"-scale"))
 		{
@@ -3106,20 +3120,6 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 			else
 			{
 				Warning("Error: expected a value after '-scale'\n" );
-				return -1;
-			}
-		}
-		else if (!Q_stricmp(argv[i],"-ambient"))
-		{
-			if ( i+3 < argc )
-			{
- 				ambient[0] = (float)atof (argv[++i]) * 128;
- 				ambient[1] = (float)atof (argv[++i]) * 128;
- 				ambient[2] = (float)atof (argv[++i]) * 128;
-			}
-			else
-			{
-				Warning("Error: expected three color values after '-ambient'\n" );
 				return -1;
 			}
 		}

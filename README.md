@@ -41,16 +41,16 @@
 ### New/Community features
 - [Removed debug counter that cripples lighting compile times](https://github.com/ValveSoftware/source-sdk-2013/pull/436)
 - [Unlimited texlight definitions](https://github.com/Petercov/Source-PlusPlus/commit/d70d401d0006dec4c9600c0de7ec2216a205b1e0)
-- [`-AllowSkyboxSample` which mulitiplies your chosen ambient light color by the color of the 2D skybox texture](https://github.com/Petercov/Source-PlusPlus/commit/0354b917cf8548edf928cb7f92a41eace376eb39)
+- [`-AllowSkyboxSample`](https://github.com/Petercov/Source-PlusPlus/commit/0354b917cf8548edf928cb7f92a41eace376eb39) which mulitiplies your chosen ambient light color by the color of the 2D skybox texture
 
 ### Replicated Slammin' features
 - [x] Enabled SSE2
-- [x] `-ambientocclusion` and `-aosamples`, adds ambient occlusion to your map and how many samples you want ([From CS:GO via G-String](https://github.com/Biohazard90/g-string_2013/commit/d3b4d1402693d75fe0fcdc67ae49bcfaa22a895e))
+- [x] `-ambientocclusion`, `-aosamples` and `-aoscale`, adds ambient occlusion to your map and how many samples you want ([From CS:GO via G-String](https://github.com/Biohazard90/g-string_2013/commit/d3b4d1402693d75fe0fcdc67ae49bcfaa22a895e))
 - [x] `-softencosine`, softens coloured lighting so it blends more accurately (See above)
 - [ ] `-coring`, scale the light threshold before a luxel is completely unlit _this doesn't actually seem to do anything in slammin and is just a long since functioning debug argument_
 - [ ] `-dispchop`, adjust the amount of patches generated for displacement faces
-- [ ] `-ambient`, when supplied with three RGB values, will apply a constant light value to every luxel in your map
-- [ ] `-reflectivityscale`, multiplier for the reflectivity of textures in your map
+- [x] `-ambient`, when supplied with three RGB values, will apply a constant light value to every luxel in your map
+- [x] `-reflectivityscale`, multiplier for the reflectivity of textures in your map
 - [ ] Change `-final` to do extra things
 - [ ] Improved displacement lightmap quality
 - [x] `-nostaticproplighting`, `-nostaticproppolys` and `-notextureshadows`
