@@ -1549,9 +1549,10 @@ void convert_xyz_to_cube_uv( float x, float y, float z, int *index, float *u, fl
 
 void SampleSkyboxCubeSSE( FourVectors const &vNormals, FourVectors &vColors )
 {
-	Vector  vecColors[4] = { Vector( 1.f ) };
+	
 	if ( g_pSkyboxCube != nullptr )
 	{
+		Vector  vecColors[4] = { Vector( 1.f ) };
 		for ( int i = 0; i < 4; i++ )
 		{
 			int iFace = 0;
@@ -1572,9 +1573,9 @@ void SampleSkyboxCubeSSE( FourVectors const &vNormals, FourVectors &vColors )
 
 			vecColors[i].Init( cPixelR / 255.f, cPixelG / 255.f, cPixelB / 255.f );
 		}
-	}
 
-	vColors = FourVectors( vecColors[0], vecColors[1], vecColors[2], vecColors[3] );
+		vColors = FourVectors( vecColors[0], vecColors[1], vecColors[2], vecColors[3] );
+	}
 }
 
 void SampleSkyboxCube( const Vector &vecNormal, Vector &vColor )
@@ -3090,6 +3091,10 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 				Warning( "Error: expected a value after '-reflectivityscale'\n" );
 				return -1;
 			}
+		}
+		else if ( !Q_stricmp( argv[i], "-allowskyboxsample" ) )
+		{
+			g_bEnableSkyboxSampling = true;
 		}
 #if ALLOWDEBUGOPTIONS
 		else if (!Q_stricmp(argv[i],"-scale"))
