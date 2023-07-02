@@ -3074,6 +3074,23 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		{
 			g_bNoSoften = false;
 		}
+		else if ( !Q_stricmp( argv[i], "-reflectivityscale" ) )
+		{
+			if ( ++i < argc )
+			{
+				reflectivityScale = (float)atof( argv[i] );
+				if ( reflectivityScale < 0.f )
+				{
+					Warning( "Error: expected positive value after '-reflectivityscale'\n" );
+					return -1;
+				}
+			}
+			else
+			{
+				Warning( "Error: expected a value after '-reflectivityscale'\n" );
+				return -1;
+			}
+		}
 #if ALLOWDEBUGOPTIONS
 		else if (!Q_stricmp(argv[i],"-scale"))
 		{
