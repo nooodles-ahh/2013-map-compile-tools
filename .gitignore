@@ -87,3 +87,4 @@ compile_commands.json
 !sourcesdk_def.mak
 
 *.pdb
+/game

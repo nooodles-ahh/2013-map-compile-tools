@@ -141,6 +141,8 @@ enum
 
 	STATIC_PROP_NO_PER_TEXEL_LIGHTING = 0x100,				// whether we should do per-texel lightmaps in vrad.
 
+	STATIC_PROP_COMPRESS_LIGHTMAP = 0x200,				// whether we should do per-texel lightmaps in vrad.
+
 	STATIC_PROP_WC_MASK		= 0x1d8,						// all flags settable in hammer (?)
 };
 

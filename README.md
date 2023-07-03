@@ -42,6 +42,7 @@
 - [Removed debug counter that cripples lighting compile times](https://github.com/ValveSoftware/source-sdk-2013/pull/436)
 - [Unlimited texlight definitions](https://github.com/Petercov/Source-PlusPlus/commit/d70d401d0006dec4c9600c0de7ec2216a205b1e0)
 - [`-AllowSkyboxSample`](https://github.com/Petercov/Source-PlusPlus/commit/0354b917cf8548edf928cb7f92a41eace376eb39) which mulitiplies your chosen ambient light color by the color of the 2D skybox texture
+- `"compresslightmaps"` keyvalue for `prop_static`. Not particularly recommended at lower lightmap resolutions as it's extremely crusty. An option for highly specific situations or of last resort.
 
 ### Replicated Slammin' features
 - [x] Enabled SSE2

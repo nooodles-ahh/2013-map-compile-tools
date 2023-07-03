@@ -659,6 +659,11 @@ void EmitStaticProps()
 				build.m_LightmapResolutionY = IntForKey( &entities[i], "lightmapresolutiony" );
 			}
 
+			if ( IntForKey( &entities[i], "compresslightmaps" ) == 1 )
+			{
+				build.m_Flags |= STATIC_PROP_COMPRESS_LIGHTMAP;
+			}
+
 			const char *pKey = ValueForKey( &entities[i], "fadescale" );
 			if ( pKey && pKey[0] )
 			{

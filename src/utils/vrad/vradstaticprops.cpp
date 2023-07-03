@@ -1040,10 +1040,8 @@ void CVradStaticPropMgr::UnserializeModels( CUtlBuffer& buf )
 		m_StaticProps[i].m_ModelIdx = lump.m_PropType;
 		m_StaticProps[i].m_Handle = TREEDATA_INVALID_HANDLE;
 		m_StaticProps[i].m_Flags = lump.m_Flags;
-
-		// Changed this from using DXT1 to RGB888 because the compression artifacts were pretty nasty. 
-		// TODO: Consider changing back or basing this on user selection in hammer.
-		m_StaticProps[i].m_LightmapImageFormat = IMAGE_FORMAT_RGB888;
+		
+		m_StaticProps[i].m_LightmapImageFormat = (m_StaticProps[i].m_Flags & STATIC_PROP_COMPRESS_LIGHTMAP) ? IMAGE_FORMAT_DXT1 : IMAGE_FORMAT_RGB888;
 		m_StaticProps[i].m_LightmapImageWidth = lump.m_nLightmapResolutionX;
 		m_StaticProps[i].m_LightmapImageHeight = lump.m_nLightmapResolutionY;
 	}
