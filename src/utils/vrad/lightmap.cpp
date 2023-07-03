@@ -3297,7 +3297,7 @@ void BuildFacelights (int iThread, int facenum)
 	}
 
 	// get rid of the -extra functionality on displacement surfaces
-	if (do_extra && !sampleInfo.m_IsDispFace)
+	if (do_extra)
 	{
 		// For each lightstyle, perform a supersampling pass
 		for ( int i = 0; i < MAXLIGHTMAPS; ++i )
