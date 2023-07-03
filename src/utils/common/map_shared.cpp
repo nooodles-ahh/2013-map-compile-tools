@@ -11,8 +11,6 @@
 
 
 CMapError g_MapError;
-int g_nMapFileVersion;
-
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -91,12 +89,6 @@ static ChunkFileResult_t LoadEntityCallback( CChunkFile *pFile, int nParam )
 
 bool LoadEntsFromMapFile( char const *pFilename )
 {
-	//
-	// Dummy this up for the texture handling. This can be removed when old .MAP file
-	// support is removed.
-	//
-	g_nMapFileVersion = 400;
-
 	//
 	// Open the file.
 	//

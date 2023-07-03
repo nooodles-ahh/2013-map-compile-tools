@@ -570,23 +570,12 @@ int FindOrCreateTexInfo( const texinfo_t &searchTexInfo )
 
 int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, const Vector& origin)
 {
-	Vector	vecs[2];
-	int		sv, tv;
-	vec_t	ang, sinv, cosv;
-	vec_t	ns, nt;
 	texinfo_t	tx;
-	int		i, j;
 
 	if (!bt->name[0])
 		return 0;
 
 	memset (&tx, 0, sizeof(tx));
-
-	// HLTOOLS - add support for texture vectors stored in the map file
-	if (g_nMapFileVersion < 220)
-	{
-		TextureAxisFromPlane(plane, vecs[0], vecs[1]);
-	}
 
 	if (!bt->textureWorldUnitsPerTexel[0])
 		bt->textureWorldUnitsPerTexel[0] = 1;
@@ -597,76 +586,24 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, const Vector& o
 	float shiftScaleU = 1.0f / 16.0f;
 	float shiftScaleV = 1.0f / 16.0f;
 
-	if (g_nMapFileVersion < 220)
-	{
-	// rotate axis
-		if (bt->rotate == 0)
-			{ sinv = 0 ; cosv = 1; }
-		else if (bt->rotate == 90)
-			{ sinv = 1 ; cosv = 0; }
-		else if (bt->rotate == 180)
-			{ sinv = 0 ; cosv = -1; }
-		else if (bt->rotate == 270)
-			{ sinv = -1 ; cosv = 0; }
-		else
-		{	
-			ang = bt->rotate / 180 * M_PI;
-			sinv = sin(ang);
-			cosv = cos(ang);
-		}
+	tx.textureVecsTexelsPerWorldUnits[0][0] = bt->UAxis[0] / bt->textureWorldUnitsPerTexel[0];
+	tx.textureVecsTexelsPerWorldUnits[0][1] = bt->UAxis[1] / bt->textureWorldUnitsPerTexel[0];
+	tx.textureVecsTexelsPerWorldUnits[0][2] = bt->UAxis[2] / bt->textureWorldUnitsPerTexel[0];
 
-		if (vecs[0][0])
-			sv = 0;
-		else if (vecs[0][1])
-			sv = 1;
-		else
-			sv = 2;
-					
-		if (vecs[1][0])
-			tv = 0;
-		else if (vecs[1][1])
-			tv = 1;
-		else
-			tv = 2;
-						
-		for (i=0 ; i<2 ; i++)
-		{
-			ns = cosv * vecs[i][sv] - sinv * vecs[i][tv];
-			nt = sinv * vecs[i][sv] +  cosv * vecs[i][tv];
-			vecs[i][sv] = ns;
-			vecs[i][tv] = nt;
-		}
+	tx.textureVecsTexelsPerWorldUnits[1][0] = bt->VAxis[0] / bt->textureWorldUnitsPerTexel[1];
+	tx.textureVecsTexelsPerWorldUnits[1][1] = bt->VAxis[1] / bt->textureWorldUnitsPerTexel[1];
+	tx.textureVecsTexelsPerWorldUnits[1][2] = bt->VAxis[2] / bt->textureWorldUnitsPerTexel[1];
 
-		for (i=0 ; i<2 ; i++)
-		{
-			for (j=0 ; j<3 ; j++)
-			{
-				tx.textureVecsTexelsPerWorldUnits[i][j] = vecs[i][j] / bt->textureWorldUnitsPerTexel[i];
-				tx.lightmapVecsLuxelsPerWorldUnits[i][j] = tx.textureVecsTexelsPerWorldUnits[i][j] / 16.0f;
-			}
-		}
-	}
-	else
-	{
-		tx.textureVecsTexelsPerWorldUnits[0][0] = bt->UAxis[0] / bt->textureWorldUnitsPerTexel[0];
-		tx.textureVecsTexelsPerWorldUnits[0][1] = bt->UAxis[1] / bt->textureWorldUnitsPerTexel[0];
-		tx.textureVecsTexelsPerWorldUnits[0][2] = bt->UAxis[2] / bt->textureWorldUnitsPerTexel[0];
+	tx.lightmapVecsLuxelsPerWorldUnits[0][0] = bt->UAxis[0] / bt->lightmapWorldUnitsPerLuxel;
+	tx.lightmapVecsLuxelsPerWorldUnits[0][1] = bt->UAxis[1] / bt->lightmapWorldUnitsPerLuxel;
+	tx.lightmapVecsLuxelsPerWorldUnits[0][2] = bt->UAxis[2] / bt->lightmapWorldUnitsPerLuxel;
+	
+	tx.lightmapVecsLuxelsPerWorldUnits[1][0] = bt->VAxis[0] / bt->lightmapWorldUnitsPerLuxel;
+	tx.lightmapVecsLuxelsPerWorldUnits[1][1] = bt->VAxis[1] / bt->lightmapWorldUnitsPerLuxel;
+	tx.lightmapVecsLuxelsPerWorldUnits[1][2] = bt->VAxis[2] / bt->lightmapWorldUnitsPerLuxel;
 
-		tx.textureVecsTexelsPerWorldUnits[1][0] = bt->VAxis[0] / bt->textureWorldUnitsPerTexel[1];
-		tx.textureVecsTexelsPerWorldUnits[1][1] = bt->VAxis[1] / bt->textureWorldUnitsPerTexel[1];
-		tx.textureVecsTexelsPerWorldUnits[1][2] = bt->VAxis[2] / bt->textureWorldUnitsPerTexel[1];
-
-		tx.lightmapVecsLuxelsPerWorldUnits[0][0] = bt->UAxis[0] / bt->lightmapWorldUnitsPerLuxel;
-		tx.lightmapVecsLuxelsPerWorldUnits[0][1] = bt->UAxis[1] / bt->lightmapWorldUnitsPerLuxel;
-		tx.lightmapVecsLuxelsPerWorldUnits[0][2] = bt->UAxis[2] / bt->lightmapWorldUnitsPerLuxel;
-		
-		tx.lightmapVecsLuxelsPerWorldUnits[1][0] = bt->VAxis[0] / bt->lightmapWorldUnitsPerLuxel;
-		tx.lightmapVecsLuxelsPerWorldUnits[1][1] = bt->VAxis[1] / bt->lightmapWorldUnitsPerLuxel;
-		tx.lightmapVecsLuxelsPerWorldUnits[1][2] = bt->VAxis[2] / bt->lightmapWorldUnitsPerLuxel;
-
-		shiftScaleU = bt->textureWorldUnitsPerTexel[0] / bt->lightmapWorldUnitsPerLuxel;
-		shiftScaleV = bt->textureWorldUnitsPerTexel[1] / bt->lightmapWorldUnitsPerLuxel;
-	}
+	shiftScaleU = bt->textureWorldUnitsPerTexel[0] / bt->lightmapWorldUnitsPerLuxel;
+	shiftScaleV = bt->textureWorldUnitsPerTexel[1] / bt->lightmapWorldUnitsPerLuxel;
 
 	tx.textureVecsTexelsPerWorldUnits[0][3] = bt->shift[0] + 
 		DOT_PRODUCT( origin, tx.textureVecsTexelsPerWorldUnits[0] );

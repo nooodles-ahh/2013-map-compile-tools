@@ -2630,12 +2630,6 @@ bool LoadMapFile( const char *pszFileName )
 	bool				bLoadingManifest = false;
 	CManifest			*pMainManifest = NULL;
 	ChunkFileResult_t	eResult;
-	
-	//
-	// Dummy this up for the texture handling. This can be removed when old .MAP file
-	// support is removed.
-	//
-	g_nMapFileVersion = 400;
 
 	const char *pszExtension =V_GetFileExtension( pszFileName );
 	if ( pszExtension && strcmpi( pszExtension, "vmm" ) == 0 )
@@ -3380,13 +3374,6 @@ mapdispinfo_t *ParseDispInfoChunk( void )
         if( strcmp( token, "]" ) )
             g_MapError.ReportError( "ParseDispInfoChunk: Illegal Chunk! - ]" );
     }
-
-    // max displacement value
-   	if( g_nMapFileVersion < 350 )
-	{
-		GetToken( false );
-		pMapDispInfo->maxDispDist = atof( token );
-	}
 
     // minimum tesselation value
     GetToken( false );

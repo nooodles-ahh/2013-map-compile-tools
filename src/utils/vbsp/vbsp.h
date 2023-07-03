@@ -342,8 +342,6 @@ extern CMapFile	*g_LoadingMap;
 
 extern CUtlVector< CMapFile * > g_Maps;
 
-extern	int			g_nMapFileVersion;
-
 extern	qboolean	noprune;
 extern	qboolean	nodetail;
 extern	qboolean	fulldetail;

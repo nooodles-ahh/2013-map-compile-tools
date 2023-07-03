@@ -78,7 +78,6 @@ private:
 
 
 extern CMapError g_MapError;
-extern int g_nMapFileVersion;
 
 
 // Shared mapload code.
