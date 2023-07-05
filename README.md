@@ -29,8 +29,8 @@
 - [ ] Improved brush precision
 - [x] Leaktest is now enabled by default, command is now `-noleaktest`
 - [x] `-nodefaultcubemap`, disables automatic skybox cubemap generation (necessary for 2013 SP)
-- [ ] `-blocksize`, lets you customise the size of visleaf splitting "blocks", default is every 1024 units
-- [ ] `-visgranularity`, lets you automatically place hint brushes in your map, syntax is `-visgranularity X Y Z`. X, Y and Z can be any integer value, for example, -visgranularity 0 0 512 would create a VIS split every 512 units vertically.
+- [x] `-blocksize`, lets you customise the size of visleaf splitting "blocks", default is every 1024 units (From CS:GO)
+- [x] `-visgranularity`, lets you automatically place hint brushes in your map, syntax is `-visgranularity X Y Z`. X, Y and Z can be any integer value, for example, -visgranularity 0 0 512 would create a VIS split every 512 units vertically. (From CS:GO)
 - [x] Subsitution of propper_models for prop_statics after Propper has run.
 
 ## VVIS

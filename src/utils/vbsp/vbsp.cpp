@@ -60,6 +60,7 @@ bool		g_bNoVirtualMesh = false;
 bool		g_bNoDefaultCubemaps = false;
 bool		g_bPropperInsertAllAsStatic = false;
 bool		g_bPropperStripEntities = false;
+int			g_nVisGranularityX = 0, g_nVisGranularityY = 0, g_nVisGranularityZ = 0;
 
 float		g_defaultLuxelSize = DEFAULT_LUXEL_SIZE;
 float		g_luxelScale = 1.0f;
@@ -75,19 +76,22 @@ char		g_szEmbedDir[MAX_PATH] = { 0 };
 
 // HLTOOLS: Introduce these calcs to make the block algorithm proportional to the proper 
 // world coordinate extents.  Assumes square spatial constraints.
-#define BLOCKS_SIZE		1024
+int g_nBlockSize = 1024;
+
+#define BLOCKS_SIZE		g_nBlockSize
 #define BLOCKS_SPACE	(COORD_EXTENT/BLOCKS_SIZE)
 #define BLOCKX_OFFSET	((BLOCKS_SPACE/2)+1)
 #define BLOCKY_OFFSET	((BLOCKS_SPACE/2)+1)
 #define BLOCKS_MIN		(-(BLOCKS_SPACE/2))
 #define BLOCKS_MAX		((BLOCKS_SPACE/2)-1)
+#define BLOCKS_ARRAY_WIDTH	( BLOCKS_SPACE + 2 )
 
 int			block_xl = BLOCKS_MIN, block_xh = BLOCKS_MAX, block_yl = BLOCKS_MIN, block_yh = BLOCKS_MAX;
 
 int			entity_num;
 
 
-node_t		*block_nodes[BLOCKS_SPACE+2][BLOCKS_SPACE+2];
+node_t	**ppBlockNodes = NULL;
 
 //-----------------------------------------------------------------------------
 // Assign occluder areas (must happen *after* the world model is processed)
@@ -111,7 +115,7 @@ node_t	*BlockTree (int xl, int yl, int xh, int yh)
 
 	if (xl == xh && yl == yh)
 	{
-		node = block_nodes[xl+BLOCKX_OFFSET][yl+BLOCKY_OFFSET];
+		node = ppBlockNodes[xl + BLOCKX_OFFSET + ( ( yl + BLOCKY_OFFSET ) * BLOCKS_ARRAY_WIDTH )];
 		if (!node)
 		{	// return an empty leaf
 			node = AllocNode ();
@@ -185,7 +189,7 @@ void ProcessBlock_Thread (int threadnum, int blocknum)
 		node = AllocNode ();
 		node->planenum = PLANENUM_LEAF;
 		node->contents = CONTENTS_SOLID;
-		block_nodes[xblock+BLOCKX_OFFSET][yblock+BLOCKY_OFFSET] = node;
+		ppBlockNodes[xblock + BLOCKX_OFFSET + ( ( yblock + BLOCKY_OFFSET ) * BLOCKS_ARRAY_WIDTH )] = node;
 		return;
 	}    
 
@@ -195,7 +199,7 @@ void ProcessBlock_Thread (int threadnum, int blocknum)
 
 	tree = BrushBSP (brushes, mins, maxs);
 	
-	block_nodes[xblock+BLOCKX_OFFSET][yblock+BLOCKY_OFFSET] = tree->headnode;
+	ppBlockNodes[xblock + BLOCKX_OFFSET + ( ( yblock + BLOCKY_OFFSET ) * BLOCKS_ARRAY_WIDTH )] = tree->headnode;
 }
 
 
@@ -219,6 +223,12 @@ void ProcessWorldModel (void)
 	brush_start = e->firstbrush;
 	brush_end = brush_start + e->numbrushes;
 	leaked = false;
+
+	if ( ppBlockNodes == NULL )
+	{
+		ppBlockNodes = new node_t * [BLOCKS_ARRAY_WIDTH * BLOCKS_ARRAY_WIDTH];
+		Q_memset( ppBlockNodes, 0, BLOCKS_ARRAY_WIDTH * BLOCKS_ARRAY_WIDTH * sizeof( node_t * ) );
+	}
 
 	//
 	// perform per-block operations
@@ -433,6 +443,208 @@ void ProcessSubModel( )
 #endif
 
 	FreeTree (tree);
+}
+
+//-----------------------------------------------------------------------------
+// Helper routine to setup side and texture setting of a splitting hint brush
+//-----------------------------------------------------------------------------
+bool InsertVisibilitySplittingHintBrush( Vector const &cut0, Vector const &cut1, Vector const &cut2, Vector const &cut3, Vector vNormal, int &nSideID, int &nBrushID )
+{
+	if ( g_MainMap->nummapbrushes == MAX_MAP_BRUSHES )
+	{
+		Error( "nummapbrushes == MAX_MAP_BRUSHES when inserting visibility split hint brushes" );
+	}
+
+	mapbrush_t &mbr = g_MainMap->mapbrushes[g_MainMap->nummapbrushes];
+	V_memset( &mbr, 0, sizeof( mbr ) );
+	mbr.brushnum = g_MainMap->nummapbrushes;
+	mbr.id = ( ++nBrushID );
+	mbr.numsides = 6;
+	mbr.original_sides = &g_MainMap->brushsides[g_MainMap->nummapbrushsides];
+	g_MainMap->nummapbrushes++;
+
+	//
+	// HINT
+	//
+	{
+		if ( g_MainMap->nummapbrushsides == MAX_MAP_BRUSHSIDES )
+		{
+			Error( "nummapbrushsides == MAX_MAP_BRUSHSIDES when inserting visibility split hint brushes" );
+		}
+		side_t &side = g_MainMap->brushsides[g_MainMap->nummapbrushsides];
+		V_memset( &side, 0, sizeof( side ) );
+		side.planenum = g_MainMap->PlaneFromPoints( cut0, cut1, cut2 );
+		side.id = ( ++nSideID );
+		side.visible = true;
+		side.surf = ( SURF_NODRAW | SURF_NOLIGHT | SURF_HINT );
+		side.texinfo = FindMiptex( "TOOLS/TOOLSHINT" );
+
+		brush_texture_t &btt = g_MainMap->side_brushtextures[g_MainMap->nummapbrushsides];
+		V_memset( &btt, 0, sizeof( btt ) );
+		V_strcpy_safe( btt.name, "TOOLS/TOOLSHINT" );
+		btt.flags = ( SURF_NODRAW | SURF_NOLIGHT | SURF_HINT );
+		btt.lightmapWorldUnitsPerLuxel = 16;
+		btt.textureWorldUnitsPerTexel[0] = btt.textureWorldUnitsPerTexel[1] = 0.25f;
+		btt.UAxis[0] = 1;
+		btt.VAxis[2] = -1;
+
+		g_MainMap->nummapbrushsides++;
+	}
+
+	// SKIP points array
+	Vector arrSkipPoints[15] =
+	{
+		cut2 + vNormal, cut1 + vNormal, cut0 + vNormal, // LARGE skip
+		cut1 + vNormal, cut1, cut0, // small skip 0->1->1'
+		cut2 + vNormal, cut2, cut1, // small skip 1->2->2'
+		cut3 + vNormal, cut3, cut2, // small skip 3'->3->2
+		cut0 + vNormal, cut0, cut3, // small skip 3->0->0'
+	};
+
+	for ( int iSkip = 0; iSkip < 5; ++iSkip )
+	{
+		if ( g_MainMap->nummapbrushsides == MAX_MAP_BRUSHSIDES )
+		{
+			Error( "nummapbrushsides == MAX_MAP_BRUSHSIDES when inserting visibility split hint brushes" );
+		}
+
+		side_t &side = g_MainMap->brushsides[g_MainMap->nummapbrushsides];
+		V_memset( &side, 0, sizeof( side ) );
+		side.planenum = g_MainMap->PlaneFromPoints( arrSkipPoints[iSkip * 3 + 0], arrSkipPoints[iSkip * 3 + 1], arrSkipPoints[iSkip * 3 + 2] );
+		side.id = ( ++nSideID );
+		side.visible = false;
+		side.surf = ( SURF_NODRAW | SURF_NOLIGHT | SURF_SKIP );
+		side.texinfo = FindMiptex( "TOOLS/TOOLSSKIP" );
+
+		brush_texture_t &btt = g_MainMap->side_brushtextures[g_MainMap->nummapbrushsides];
+		V_memset( &btt, 0, sizeof( btt ) );
+		V_strcpy_safe( btt.name, "TOOLS/TOOLSSKIP" );
+		btt.flags = ( SURF_NODRAW | SURF_NOLIGHT | SURF_SKIP );
+		btt.lightmapWorldUnitsPerLuxel = 16;
+		btt.textureWorldUnitsPerTexel[0] = btt.textureWorldUnitsPerTexel[1] = 0.25f;
+		btt.UAxis[0] = 1;
+		btt.VAxis[2] = -1;
+
+		g_MainMap->nummapbrushsides++;
+	}
+
+	g_MainMap->MakeBrushWindings( &mbr );
+
+	return true;
+}
+
+
+//-----------------------------------------------------------------------------
+// Inserts visibility splitting hint brushes
+//-----------------------------------------------------------------------------
+void InsertVisibilitySplittingHintBrushes()
+{
+	// Compute max brush side ID
+	int		max_side_id = 0;
+	for ( int i = 0; i < g_MainMap->nummapbrushsides; i++ )
+	{
+		if ( g_MainMap->brushsides[i].id > max_side_id )
+		{
+			max_side_id = g_MainMap->brushsides[i].id;
+		}
+	}
+
+	// Compute max brush ID
+	int		max_brush_id = 0;
+	for ( int i = 0; i < g_MainMap->nummapbrushes; i++ )
+	{
+		if ( g_MainMap->mapbrushes[i].id > max_brush_id )
+		{
+			max_brush_id = g_MainMap->mapbrushes[i].id;
+		}
+	}
+
+	// Have a fake entity tracking all the splits that we added
+	entity_t entityForVisibilitySplits;
+	V_memset( &entityForVisibilitySplits, 0, sizeof( entityForVisibilitySplits ) );
+	entityForVisibilitySplits.firstbrush = g_MainMap->nummapbrushes;
+
+	// Force visibility splits
+	if ( g_nVisGranularityX > 0 )
+	{
+		int nMinX = g_MainMap->map_mins.x;
+		nMinX = 1 + ( nMinX / g_nVisGranularityX ) * g_nVisGranularityX;
+		int nMaxX = g_MainMap->map_maxs.x;
+		nMaxX = -1 + ( nMaxX / g_nVisGranularityX ) * g_nVisGranularityX;
+		int numCuts = 0;
+		for ( ; nMinX < nMaxX; nMinX += g_nVisGranularityX )
+		{
+			Vector cut0( nMinX, g_MainMap->map_maxs.y, g_MainMap->map_maxs.z );
+			Vector cut1( nMinX, g_MainMap->map_mins.y, g_MainMap->map_maxs.z );
+			Vector cut2( nMinX, g_MainMap->map_mins.y, g_MainMap->map_mins.z );
+			Vector cut3( nMinX, g_MainMap->map_maxs.y, g_MainMap->map_mins.z );
+			Vector vNormal( 1, 0, 0 );
+			if ( InsertVisibilitySplittingHintBrush( cut0, cut1, cut2, cut3, vNormal, max_side_id, max_brush_id ) )
+			{
+				++entityForVisibilitySplits.numbrushes;
+				++numCuts;
+			}
+		}
+		Msg( "Vis granularity X introduced %i cuts between %.0f and %.0f\n", numCuts, g_MainMap->map_mins.x, g_MainMap->map_maxs.x );
+	}
+	if ( g_nVisGranularityY > 0 )
+	{
+		int nMinY = g_MainMap->map_mins.y;
+		nMinY = 1 + ( nMinY / g_nVisGranularityY ) * g_nVisGranularityY;
+		int nMaxY = g_MainMap->map_maxs.y;
+		nMaxY = -1 + ( nMaxY / g_nVisGranularityY ) * g_nVisGranularityY;
+		int numCuts = 0;
+		for ( ; nMinY < nMaxY; nMinY += g_nVisGranularityY )
+		{
+			Vector cut0( g_MainMap->map_maxs.x, nMinY, g_MainMap->map_mins.z );
+			Vector cut1( g_MainMap->map_mins.x, nMinY, g_MainMap->map_mins.z );
+			Vector cut2( g_MainMap->map_mins.x, nMinY, g_MainMap->map_maxs.z );
+			Vector cut3( g_MainMap->map_maxs.x, nMinY, g_MainMap->map_maxs.z );
+			Vector vNormal( 0, 1, 0 );
+			if ( InsertVisibilitySplittingHintBrush( cut0, cut1, cut2, cut3, vNormal, max_side_id, max_brush_id ) )
+			{
+				++entityForVisibilitySplits.numbrushes;
+				++numCuts;
+			}
+		}
+		Msg( "Vis granularity Y introduced %i cuts between %.0f and %.0f\n", numCuts, g_MainMap->map_mins.y, g_MainMap->map_maxs.y );
+	}
+	if ( g_nVisGranularityZ > 0 )
+	{
+		int nMinZ = g_MainMap->map_mins.z;
+		nMinZ = 1 + ( nMinZ / g_nVisGranularityZ ) * g_nVisGranularityZ;
+		int nMaxZ = g_MainMap->map_maxs.z;
+		nMaxZ = -1 + ( nMaxZ / g_nVisGranularityZ ) * g_nVisGranularityZ;
+		int numCuts = 0;
+		for ( ; nMinZ < nMaxZ; nMinZ += g_nVisGranularityZ )
+		{
+			Vector cut0( g_MainMap->map_mins.x, g_MainMap->map_maxs.y, nMinZ );
+			Vector cut1( g_MainMap->map_mins.x, g_MainMap->map_mins.y, nMinZ );
+			Vector cut2( g_MainMap->map_maxs.x, g_MainMap->map_mins.y, nMinZ );
+			Vector cut3( g_MainMap->map_maxs.x, g_MainMap->map_maxs.y, nMinZ );
+			Vector vNormal( 0, 0, 1 );
+			if ( InsertVisibilitySplittingHintBrush( cut0, cut1, cut2, cut3, vNormal, max_side_id, max_brush_id ) )
+			{
+				++entityForVisibilitySplits.numbrushes;
+				++numCuts;
+			}
+		}
+		Msg( "Vis granularity Z introduced %i cuts between %.0f and %.0f\n", numCuts, g_MainMap->map_mins.z, g_MainMap->map_maxs.z );
+	}
+
+	// Now move all the newly introduced brushes to world
+	if ( entityForVisibilitySplits.numbrushes )
+	{
+		g_MainMap->MoveBrushesToWorld( &entityForVisibilitySplits );
+		if ( num_entities != g_MainMap->num_entities )
+		{
+			Error( "Entities accounting error while enforcing visibility granularity!\n" );
+		}
+		else
+		{	// Force a re-copy since moving brushes to world affected all brushes and sides
+			memcpy( entities, g_MainMap->entities, sizeof( g_MainMap->entities ) );
+		}
+	}
 }
 
 
@@ -1047,6 +1259,20 @@ int RunVBSP( int argc, char **argv )
 				block_xl, block_yl, block_xh, block_yh);
 			i+=4;
 		}
+		else if ( !Q_stricmp( argv[i], "-visgranularity" ) )
+		{
+			g_nVisGranularityX = abs( atoi( argv[i + 1] ) );
+			g_nVisGranularityY = abs( atoi( argv[i + 2] ) );
+			g_nVisGranularityZ = abs( atoi( argv[i + 3] ) );
+			Msg( "visgranularity: %i,%i,%i\n",
+				g_nVisGranularityX, g_nVisGranularityY, g_nVisGranularityZ );
+			i += 3;
+			}
+		else if ( !Q_stricmp( argv[i], "-blocksize" ) )
+		{
+			g_nBlockSize = atoi( argv[i + 1] );
+			i++;
+		}
 		else if ( !Q_stricmp( argv[i], "-dumpcollide" ) )
 		{
 			Msg("Dumping collision models to collideXXX.txt\n" );
@@ -1419,6 +1645,9 @@ int RunVBSP( int argc, char **argv )
 		}
 
 		LoadMapFile (name);
+
+		InsertVisibilitySplittingHintBrushes();
+
 		WorldVertexTransitionFixup();
 		if( ( g_nDXLevel == 0 ) || ( g_nDXLevel >= 70 ) )
 		{
