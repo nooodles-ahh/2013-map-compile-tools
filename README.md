@@ -59,7 +59,7 @@
 - [ ] Any prop with `$staticprop` can now be a lit static prop (IE physics props)
 - [ ] Single-line comments can now be placed in .rad files.
 - [ ] Corrected issues related to luxel placement on displacement surfaces, luxels will now be correctly placed, resulting in higher quality lightmaps (with no extra cost)
-- [ ] Enabled supersampling capabilities for displacement surfaces, further increases lightmap quality, you may experience a very slightly longer compile time
+- [x] Enabled supersampling capabilities for displacement surfaces, further increases lightmap quality, you may experience a very slightly longer compile time
 - [x] Defaults to `.dx90` VTX files when loading models now
 - [ ] `-worldtextureshadows`, allows world polys to cast texture shadows
 - [ ] `-translucentshadows` to enable the effect on $translucent surfaces.
