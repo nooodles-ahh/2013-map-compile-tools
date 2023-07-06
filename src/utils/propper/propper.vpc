@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-//	VBSP.VPC
+//	PROPPER.VPC
 //
 //	Project Script
 //-----------------------------------------------------------------------------
@@ -7,6 +7,18 @@
 $Macro SRCDIR		"..\.."
 $Include "$SRCDIR\utils\vbsp\vbsp_base.vpc"
 
-$Project "Vbsp"
+$Configuration
 {
+	$Compiler
+	{
+		$PreprocessorDefinitions			"$BASE;PROPPER"
+	}
+}
+
+$Project "Propper"
+{
+	$Folder	"Source Files"
+	{
+		$File	"propper.cpp"
+	}
 }

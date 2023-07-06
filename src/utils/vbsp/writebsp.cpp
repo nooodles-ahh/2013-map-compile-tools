@@ -1256,6 +1256,7 @@ void EndBSPFile (void)
 	Overlay_EmitOverlayFaces();
 	OverlayTransition_EmitOverlayFaces();
 
+#ifndef PROPPER
 	// phys collision needs dispinfo to operate (needs to generate phys collision for displacement surfs)
 	EmitPhysCollision();
 
@@ -1274,21 +1275,26 @@ void EndBSPFile (void)
 
 	// Make sure that we have a water lod control eneity if we have water in the map.
 	EnsurePresenceOfWaterLODControlEntity();
+#endif
 
 	// Doing this here because stuff about may filter out entities
 	UnparseEntities ();
-
+	
+#ifndef PROPPER
 	// remove unused texinfos
 	CompactTexinfos();
+#endif
 
 	// Figure out which faces want macro textures.
 	DiscoverMacroTextures();
-
+	
+#ifndef PROPPER
 	char fileName[1024];
 	V_strncpy( fileName, source, sizeof( fileName ) );
 	V_DefaultExtension( fileName, ".bsp", sizeof( fileName ) );
 	Msg ("Writing %s\n", fileName);
 	WriteBSPFile (fileName);
+#endif
 }
 
 

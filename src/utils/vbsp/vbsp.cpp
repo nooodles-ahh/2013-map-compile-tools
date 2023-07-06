@@ -289,6 +289,7 @@ void ProcessWorldModel (void)
 		//
 
 		// make the portals/faces by traversing down to each empty leaf
+#ifndef PROPPER
 		MakeTreePortals (tree);
 
 		if (FloodEntities (tree))
@@ -307,6 +308,7 @@ void ProcessWorldModel (void)
 				exit (0);
 			}
 		}
+#endif
 
 		// mark the brush sides that actually turned into faces
 		MarkVisibleSides (tree, brush_start, brush_end, NO_DETAIL);
@@ -321,23 +323,29 @@ void ProcessWorldModel (void)
 		}
 	}
 
+#ifndef PROPPER
 	FloodAreas (tree);
+#endif
 
 	RemoveAreaPortalBrushes_R( tree->headnode );
 
 	start = Plat_FloatTime();
+#ifndef PROPPER
 	Msg("Building Faces...");
 	// this turns portals with one solid side into faces
 	// it also subdivides each face if necessary to fit max lightmap dimensions
 	MakeFaces (tree->headnode);
 	Msg("done (%d)\n", (int)(Plat_FloatTime() - start) );
+#endif
 
 	if (glview)
 	{
 		WriteGLView (tree, source);
 	}
 
+#ifndef PROPPER
 	AssignOccluderAreas( tree );
+#endif
 	Compute3DSkyboxAreas( tree->headnode, g_SkyAreas );
 	face_t *pLeafFaceList = NULL;
 	if ( !nodetail )
@@ -363,14 +371,18 @@ void ProcessWorldModel (void)
 //	Msg( "SplitSubdividedFaces...\n" );
 //	SplitSubdividedFaces( tree->headnode );
 
+#ifndef PROPPER
 	Msg("WriteBSP...\n");
+#endif
 	WriteBSP (tree->headnode, pLeafFaceList);
+#ifndef PROPPER
 	Msg("done (%d)\n", (int)(Plat_FloatTime() - start) );
 
 	if (!leaked)
 	{
 		WritePortalFile (tree);
 	}
+#endif
 
 	FreeTree( tree );
 	FreeLeafFaces( pLeafFaceList );
@@ -864,9 +876,11 @@ void ProcessModels (void)
 		}
 	}
 
+#ifndef PROPPER
 	// Turn the skybox into a cubemap in case we don't build env_cubemap textures.
 	if ( !g_bNoDefaultCubemaps )
 		Cubemap_CreateDefaultCubemaps();
+#endif
 	EndBSPFile ();
 }
 
@@ -892,8 +906,9 @@ int RunVBSP( int argc, char **argv )
 {
 	int		i;
 	double		start, end;
+#ifndef PROPPER
 	char		path[1024];
-
+#endif
 	CommandLine()->CreateCmdLine( argc, argv );
 	MathLib_Init( 2.2f, 2.2f, 0.0f, OVERBRIGHT );
 	InstallSpewFunction();
@@ -912,6 +927,50 @@ int RunVBSP( int argc, char **argv )
 	V_strncat( mapFile, ".bsp", sizeof( mapFile ) );
 
 	LoadCmdLineFromFile( argc, argv, mapbase, "vbsp" );
+
+#ifdef PROPPER
+	Msg( "Propper 0.32. Originally written by Carl Foust, fixed and compiled for SDK Base 2013 by tuxxi. Adapted from vbsp.exe by Valve Software. (%s)\n", __DATE__ );
+
+	for ( i = 1; i < argc; i++ )
+	{
+		if ( !stricmp( argv[i], "-logging" ) )
+		{
+			logging = true;
+		}
+		else if ( !stricmp( argv[i], "-nocompile" ) )
+		{
+			Msg( "No Compile--Propper will not run studiomdl.\n" );
+			studioCompile = false;
+		}
+		else if ( !stricmp( argv[i], "-nomaterials" ) )
+		{
+			Msg( "No Materials--Propper will not convert any materials.\n" );
+			fixMaterials = false;
+		}
+		/*else if ( !stricmp(argv[i], "-mapbase") )
+		{
+			Msg( "Mapbase--Propper will convert materials to the Mapbase version of the VertexLit shader.\n" );
+			useMapbase = true;
+		}*/
+		else if ( !stricmp( argv[i], "-obj" ) )
+		{
+			Msg( "OBJ export enabled.\n" );
+			objExport = true;
+		}
+		else if ( !Q_stricmp( argv[i], "-vproject" ) || !Q_stricmp( argv[i], "-game" ) )
+		{
+			++i;
+		}
+		else if ( argv[i][0] == '-' )
+		{
+			Warning( "Propper: Unknown option \"%s\"\n\n", argv[i] );
+			i = 100000;	// force it to print the usage
+			break;
+		}
+		else
+			break;
+	}
+#else
 
 	Msg( "Valve Software - vbsp.exe (%s)\n", __DATE__ );
 
@@ -1185,12 +1244,33 @@ int RunVBSP( int argc, char **argv )
 		else
 			break;
 	}
+#endif
 
 	if (i != argc - 1)
 	{
 		PrintCommandLine( argc, argv );
 
-		Warning(	
+#ifdef PROPPER
+		Warning(
+			"usage  : propper [options...] mapfile\n"
+			"example: propper -game \"c:\\program files\\steam\\steamapps\\username\\half-life 2\\hl2 c:\\maps\\test.vmf\n"
+			"\n"
+			"Common options (use -v to see all options):\n"
+			"\n"
+			"  -v (or -verbose): Turn on verbose output (also shows more command\n"
+			"                    line options).\n"
+			"\n"
+			"  -low        : Run as an idle-priority process.\n"
+			"\n"
+			"  -vproject <directory> : Override the VPROJECT environment variable.\n"
+			"  -game <directory>     : Same as -vproject.\n"
+			"  -logging				 : enable .log file.\n"
+			"  -nomaterials			 : Makes propper skip conversion of material files.\n"
+			"  -mapbase				 : Makes propper use Mapbase shaders when converting materials.\n"
+			"  -nocompile			 : Makes propper skip running studiomdl to compile props.\n"
+			"\n" );
+#else
+		Warning(
 			"usage  : vbsp [options...] mapfile\n"
 			"example: vbsp -onlyents c:\\hl2\\hl2\\maps\\test\n"
 			"\n"
@@ -1262,8 +1342,9 @@ int RunVBSP( int argc, char **argv )
 				"  -nox360		   : Disable generation Xbox360 version of vsp (default)\n"
 				"  -replacematerials : Substitute materials according to materialsub.txt in content\\maps\n"
 				"  -FullMinidumps  : Write large minidumps on crash.\n"
-				);
-			}
+			);
+		}
+#endif
 
 		DeleteCmdLine( argc, argv );
 		CmdLib_Cleanup();
@@ -1310,7 +1391,9 @@ int RunVBSP( int argc, char **argv )
 	_snprintf( logFile, sizeof(logFile), "%s.log", source );
 	SetSpewFunctionLogFile( logFile );
 
+#ifndef PROPPER
 	LoadPhysicsDLL();
+#endif
 	LoadSurfaceProperties();
 
 #if 0
@@ -1322,12 +1405,14 @@ int RunVBSP( int argc, char **argv )
 	sprintf( materialPath, "%smaterials", gamedir );
 	InitMaterialSystem( materialPath, CmdLib_GetFileSystemFactory() );
 	Msg( "materialPath: %s\n", materialPath );
-
+	
+#ifndef PROPPER
 	// delete portal and line files
 	sprintf (path, "%s.prt", source);
 	remove (path);
 	sprintf (path, "%s.lin", source);
 	remove (path);
+#endif
 
 	strcpy (name, ExpandArg (argv[i]));	
 
@@ -1419,6 +1504,11 @@ int RunVBSP( int argc, char **argv )
 		}
 
 		LoadMapFile (name);
+
+#ifndef PROPPER
+		InsertVisibilitySplittingHintBrushes();
+#endif
+
 		WorldVertexTransitionFixup();
 		if( ( g_nDXLevel == 0 ) || ( g_nDXLevel >= 70 ) )
 		{
@@ -1430,6 +1520,10 @@ int RunVBSP( int argc, char **argv )
 		SetLightStyles ();
 		LoadEmitDetailObjectDictionary( gamedir );
 		ProcessModels ();
+
+#ifdef PROPPER
+		GeneratePropperProps();
+#endif
 
 		// Add embed dir if provided
 		if ( *g_szEmbedDir )
