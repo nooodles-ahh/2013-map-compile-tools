@@ -23,9 +23,9 @@
 - [ ] Stripped out .map displacement parser, you can't export .map files with dispinfo, this has been obsolete for over 15 years
 - [ ] New `%compile` command for VMTs, `%compileNoShadows`, makes a material not recieve shadows, only direct light, this is used on water usually
 - [ ] Any prop with `$staticprop` can now be a static prop (IE physics props) _replaced non-static model error with a warning, need to check slammin behaviour_
-- [ ] Increased detail sprites limit
+- [x] Increased detail sprites limit
 - [x] Custom lightmappedgeneric shaders are supported now (such as SDK_Lightmappedgeneric)
-- [ ] Implemented support for `func_detail_blocker`
+- [x] Implemented support for `func_detail_blocker`
 - [ ] Improved brush precision
 - [x] Leaktest is now enabled by default, command is now `-noleaktest`
 - [x] `-nodefaultcubemap`, disables automatic skybox cubemap generation (necessary for 2013 SP)
