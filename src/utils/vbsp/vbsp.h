@@ -609,6 +609,7 @@ void	CreateBrush (int brushnum);
 // detail objects
 //=============================================================================
 
+void AddDetailBlocker( entity_t *pFuncDetailBlocker );
 void LoadEmitDetailObjectDictionary( char const* pGameDir );
 void EmitDetailObjects();
 
