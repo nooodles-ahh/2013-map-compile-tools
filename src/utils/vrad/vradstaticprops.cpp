@@ -491,6 +491,7 @@ bool LoadStudioModel( char const* pModelName, CUtlBuffer& buf )
 	{
 		Warning( "Warning! Using dynamic model \"%s\"\n"
 			"      as a static prop\n", pModelName );
+		//return false;
 	}
 
 	// ensure reset
