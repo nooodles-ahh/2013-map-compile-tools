@@ -177,9 +177,9 @@ bool LoadStudioModel( char const* pModelName, char const* pEntityType, CUtlBuffe
 		}
 		else if ( isStaticProp == RET_FAIL_DYNAMIC )
 		{
-			Warning("Error! %s using model \"%s\", which must be used on a dynamic entity (i.e. prop_physics). Deleted.\n", pEntityType, pModelName );
+			Warning("Error! %s using model \"%s\", which must be used on a dynamic entity (i.e. prop_physics).\n", pEntityType, pModelName );
 		}
-		return false;
+		//return false;
 	}
 
 	// ensure reset
