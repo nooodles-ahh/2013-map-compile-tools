@@ -2736,7 +2736,7 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		}
 		else if ( !Q_stricmp( argv[i], "-NoStaticPropPolys" ) )
 		{
-			g_bStaticPropPolys = true;
+			g_bStaticPropPolys = false;
 		}
 		else if ( !Q_stricmp( argv[i], "-nossprops" ) )
 		{
