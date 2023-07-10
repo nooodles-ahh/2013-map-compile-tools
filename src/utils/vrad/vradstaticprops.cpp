@@ -1867,11 +1867,17 @@ void CVradStaticPropMgr::AddPolysForRayTrace( void )
 		if ( !pStudioHdr || !pVtxHdr )
 		{
 			// must have model and its verts for decoding triangles
-			return;
+			// must have model and its verts for decoding triangles
+			printf( "Can't get studio header (%p) and vertex data (%p) for %s\n", pStudioHdr, pVtxHdr,
+					pStudioHdr ? pStudioHdr->name : "***unknown***" );
+			continue;
 		}
 		// only init the triangle table the first time
 		bool bInitTriangles = dict.m_triangleMaterialIndex.Count() ? false : true;
 		int triangleIndex = 0;
+		// transform position into world coordinate system
+		matrix3x4_t	matrix;
+		AngleMatrix( prop.m_Angles, prop.m_Origin, matrix );
 
 		// meshes are deeply hierarchial, divided between three stores, follow the white rabbit
 		// body parts -> models -> lod meshes -> strip groups -> strips
@@ -1930,77 +1936,65 @@ void CVradStaticPropMgr::AddPolysForRayTrace( void )
 						{
 							OptimizedModel::StripHeader_t *pStrip = pStripGroup->pStrip( nStrip );
 
-							if ( pStrip->flags & OptimizedModel::STRIP_IS_TRILIST )
+							for ( int i = 0; i < pStrip->numIndices; i += 3 )
 							{
-								for ( int i = 0; i < pStrip->numIndices; i += 3 )
+								int idx = pStrip->indexOffset + i;
+
+								unsigned short i1 = *pStripGroup->pIndex( idx );
+								unsigned short i2 = *pStripGroup->pIndex( idx + 1 );
+								unsigned short i3 = *pStripGroup->pIndex( idx + 2 );
+
+								int vertex1 = pStripGroup->pVertex( i1 )->origMeshVertID;
+								int vertex2 = pStripGroup->pVertex( i2 )->origMeshVertID;
+								int vertex3 = pStripGroup->pVertex( i3 )->origMeshVertID;
+
+								// transform position into world coordinate system
+								matrix3x4_t	matrix;
+								AngleMatrix( prop.m_Angles, prop.m_Origin, matrix );
+								Vector position1;
+								Vector position2;
+								Vector position3;
+								VectorTransform( *vertData->Position( vertex1 ), matrix, position1 );
+								VectorTransform( *vertData->Position( vertex2 ), matrix, position2 );
+								VectorTransform( *vertData->Position( vertex3 ), matrix, position3 );
+								unsigned short flags = 0;
+								int materialIndex = -1;
+								Vector color = vec3_origin;
+								if ( shadowTextureIndex >= 0 )
 								{
-									int idx = pStrip->indexOffset + i;
-
-									unsigned short i1 = *pStripGroup->pIndex( idx );
-									unsigned short i2 = *pStripGroup->pIndex( idx + 1 );
-									unsigned short i3 = *pStripGroup->pIndex( idx + 2 );
-
-									int vertex1 = pStripGroup->pVertex( i1 )->origMeshVertID;
-									int vertex2 = pStripGroup->pVertex( i2 )->origMeshVertID;
-									int vertex3 = pStripGroup->pVertex( i3 )->origMeshVertID;
-
-									// transform position into world coordinate system
-									matrix3x4_t	matrix;
-									AngleMatrix( prop.m_Angles, prop.m_Origin, matrix );
-
-									Vector position1;
-									Vector position2;
-									Vector position3;
-									VectorTransform( *vertData->Position( vertex1 ), matrix, position1 );
-									VectorTransform( *vertData->Position( vertex2 ), matrix, position2 );
-									VectorTransform( *vertData->Position( vertex3 ), matrix, position3 );
-									unsigned short flags = 0;
-									int materialIndex = -1;
-									Vector color = vec3_origin;
-									if ( shadowTextureIndex >= 0 )
+									if ( bInitTriangles )
 									{
-										if ( bInitTriangles )
+										// add texture space and texture index to material database
+										// now
+										float coverage = g_ShadowTextureList.ComputeCoverageForTriangle(shadowTextureIndex, *vertData->Texcoord(vertex1), *vertData->Texcoord(vertex2), *vertData->Texcoord(vertex3) );
+										if ( coverage < 1.0f )
 										{
-											// add texture space and texture index to material database
-											// now
-											float coverage = g_ShadowTextureList.ComputeCoverageForTriangle(shadowTextureIndex, *vertData->Texcoord(vertex1), *vertData->Texcoord(vertex2), *vertData->Texcoord(vertex3) );
-											if ( coverage < 1.0f )
-											{
-												materialIndex = g_ShadowTextureList.AddMaterialEntry( shadowTextureIndex, *vertData->Texcoord(vertex1), *vertData->Texcoord(vertex2), *vertData->Texcoord(vertex3) );
-												color.x = coverage;
-											}
-											else
-											{
-												materialIndex = -1;
-											}
-											dict.m_triangleMaterialIndex.AddToTail(materialIndex);
+											materialIndex = g_ShadowTextureList.AddMaterialEntry( shadowTextureIndex, *vertData->Texcoord(vertex1), *vertData->Texcoord(vertex2), *vertData->Texcoord(vertex3) );
+											color.x = coverage;
 										}
 										else
 										{
-											materialIndex = dict.m_triangleMaterialIndex[triangleIndex];
-											triangleIndex++;
+											materialIndex = -1;
 										}
-										if ( materialIndex >= 0 )
-										{
-											flags = FCACHETRI_TRANSPARENT;
-										}
+										dict.m_triangleMaterialIndex.AddToTail(materialIndex);
 									}
+									else
+									{
+										materialIndex = dict.m_triangleMaterialIndex[triangleIndex];
+										triangleIndex++;
+									}
+									if ( materialIndex >= 0 )
+									{
+										flags = FCACHETRI_TRANSPARENT;
+									}
+								}
 // 		printf( "\ngl 3\n" );
 // 		printf( "gl %6.3f %6.3f %6.3f 1 0 0\n", XYZ(position1));
 // 		printf( "gl %6.3f %6.3f %6.3f 0 1 0\n", XYZ(position2));
 // 		printf( "gl %6.3f %6.3f %6.3f 0 0 1\n", XYZ(position3));
-									g_RtEnv.AddTriangle( TRACE_ID_STATICPROP | nProp,
-														 position1, position2, position3,
-														 color, flags, materialIndex);
-								}
-							}
-							else
-							{
-								// all tris expected to be discrete tri lists
-								// must fixme if stripping ever occurs
-								printf( "unexpected strips found\n" );
-								Assert( 0 );
-								return;
+								g_RtEnv.AddTriangle( TRACE_ID_STATICPROP | nProp,
+													 position1, position2, position3,
+													 color, flags, materialIndex);
 							}
 						}
 					}
@@ -2114,50 +2108,39 @@ void CVradStaticPropMgr::BuildTriList( CStaticProp &prop )
 					{
 						OptimizedModel::StripHeader_t *pStrip = pStripGroup->pStrip( nStrip );
 
-						if ( pStrip->flags & OptimizedModel::STRIP_IS_TRILIST )
+						for ( int i = 0; i < pStrip->numIndices; i += 3 )
 						{
-							for ( int i = 0; i < pStrip->numIndices; i += 3 )
-							{
-								int idx = pStrip->indexOffset + i;
+							int idx = pStrip->indexOffset + i;
 
-								unsigned short i1 = *pStripGroup->pIndex( idx );
-								unsigned short i2 = *pStripGroup->pIndex( idx + 1 );
-								unsigned short i3 = *pStripGroup->pIndex( idx + 2 );
+							unsigned short i1 = *pStripGroup->pIndex( idx );
+							unsigned short i2 = *pStripGroup->pIndex( idx + 1 );
+							unsigned short i3 = *pStripGroup->pIndex( idx + 2 );
 
-								int vertex1 = pStripGroup->pVertex( i1 )->origMeshVertID;
-								int vertex2 = pStripGroup->pVertex( i2 )->origMeshVertID;
-								int vertex3 = pStripGroup->pVertex( i3 )->origMeshVertID;
+							int vertex1 = pStripGroup->pVertex( i1 )->origMeshVertID;
+							int vertex2 = pStripGroup->pVertex( i2 )->origMeshVertID;
+							int vertex3 = pStripGroup->pVertex( i3 )->origMeshVertID;
 
-								// transform position into world coordinate system
-								matrix3x4_t	matrix;
-								AngleMatrix( prop.m_Angles, prop.m_Origin, matrix );
+							// transform position into world coordinate system
+							matrix3x4_t	matrix;
+							AngleMatrix( prop.m_Angles, prop.m_Origin, matrix );
 
-								Vector position1;
-								Vector position2;
-								Vector position3;
-								VectorTransform( *vertData->Position( vertex1 ), matrix, position1 );
-								VectorTransform( *vertData->Position( vertex2 ), matrix, position2 );
-								VectorTransform( *vertData->Position( vertex3 ), matrix, position3 );
+							Vector position1;
+							Vector position2;
+							Vector position3;
+							VectorTransform( *vertData->Position( vertex1 ), matrix, position1 );
+							VectorTransform( *vertData->Position( vertex2 ), matrix, position2 );
+							VectorTransform( *vertData->Position( vertex3 ), matrix, position3 );
 
-								Vector normal1;
-								Vector normal2;
-								Vector normal3;
-								VectorTransform( *vertData->Normal( vertex1 ), matrix, normal1 );
-								VectorTransform( *vertData->Normal( vertex2 ), matrix, normal2 );
-								VectorTransform( *vertData->Normal( vertex3 ), matrix, normal3 );
+							Vector normal1;
+							Vector normal2;
+							Vector normal3;
+							VectorTransform( *vertData->Normal( vertex1 ), matrix, normal1 );
+							VectorTransform( *vertData->Normal( vertex2 ), matrix, normal2 );
+							VectorTransform( *vertData->Normal( vertex3 ), matrix, normal3 );
 
-								AddTriVertsToList( triListVerts, pMesh->vertexoffset + vertex1, position1, position1, position2, position3, normal1, normal2, normal3 );
-								AddTriVertsToList( triListVerts, pMesh->vertexoffset + vertex2, position2, position1, position2, position3, normal1, normal2, normal3 );
-								AddTriVertsToList( triListVerts, pMesh->vertexoffset + vertex3, position3, position1, position2, position3, normal1, normal2, normal3 );
-							}
-						}
-						else
-						{
-							// all tris expected to be discrete tri lists
-							// must fixme if stripping ever occurs
-							printf( "unexpected strips found\n" );
-							Assert( 0 );
-							return;
+							AddTriVertsToList( triListVerts, pMesh->vertexoffset + vertex1, position1, position1, position2, position3, normal1, normal2, normal3 );
+							AddTriVertsToList( triListVerts, pMesh->vertexoffset + vertex2, position2, position1, position2, position3, normal1, normal2, normal3 );
+							AddTriVertsToList( triListVerts, pMesh->vertexoffset + vertex3, position3, position1, position2, position3, normal1, normal2, normal3 );
 						}
 					}
 				}
