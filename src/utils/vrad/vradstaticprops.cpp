@@ -696,8 +696,7 @@ public:
 		{
 			KeyValues *pVMT = new KeyValues("vmt");
 			CUtlBuffer buf(0,0,CUtlBuffer::TEXT_BUFFER);
-			LoadFileIntoBuffer( buf, pMaterialName );
-			if ( pVMT->LoadFromBuffer( pMaterialName, buf ) )
+			if ( LoadFileIntoBuffer( buf, pMaterialName ) && pVMT->LoadFromBuffer( pMaterialName, buf ) )
 			{
 				bFound = true;
 				if ( pVMT->FindKey("$translucent") || pVMT->FindKey("$alphatest") )
