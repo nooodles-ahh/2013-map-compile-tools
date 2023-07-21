@@ -20,6 +20,7 @@ $Configuration
 	$Linker
 	{
 		$AdditionalDependencies				"$BASE ws2_32.lib odbc32.lib odbccp32.lib winmm.lib"
+		$EnableLargeAddresses				"Support Addresses Larger Than 2 Gigabytes (/LARGEADDRESSAWARE)"
 	}
 }
 

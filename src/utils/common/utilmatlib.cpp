@@ -19,6 +19,7 @@
 #include "filesystem.h"
 #include "materialsystem/materialsystem_config.h"
 #include "mathlib/Mathlib.h"
+#include <icommandline.h>
 
 void LoadMaterialSystemInterface( CreateInterfaceFn fileSystemFactory )
 {
@@ -59,6 +60,19 @@ void InitMaterialSystem( const char *materialBaseDirPath, CreateInterfaceFn file
 	LoadMaterialSystemInterface( fileSystemFactory );
 	MaterialSystem_Config_t config;
 	g_pMaterialSystem->OverrideConfig( config, false );
+
+	// if we don't have a game or vproject parameter and we've made it this far it means we're the VPROJECT env variable,
+	// which ModInit does not check, so we need to add it.
+	if ( !CommandLine()->FindParm( "-game" ) && !CommandLine()->FindParm( "-vproject" ) )
+	{
+		const char *pProject = nullptr;
+		if ( ( pProject = getenv( GAMEDIR_TOKEN ) ) != nullptr )
+		{
+			char projectPath[MAX_PATH];
+			Q_MakeAbsolutePath( projectPath, MAX_PATH, pProject );
+			CommandLine()->AppendParm( "-game", projectPath );
+		}
+	}
 	g_pMaterialSystem->ModInit();
 }
 
