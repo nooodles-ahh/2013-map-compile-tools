@@ -20,9 +20,9 @@
 - [x] Added missing content types to csg.cpp
 - [x] `-maxluxelscale`, lets you limit the maximum luxel scale in your map
 - [x] Detail brushes now preserve their smoothing group
-- [ ] Stripped out .map displacement parser, you can't export .map files with dispinfo, this has been obsolete for over 15 years
+- [x] Stripped out .map displacement parser, you can't export .map files with dispinfo, this has been obsolete for over 15 years
 - [ ] New `%compile` command for VMTs, `%compileNoShadows`, makes a material not recieve shadows, only direct light, this is used on water usually
-- [ ] Any prop with `$staticprop` can now be a static prop (IE physics props) _replaced non-static model error with a warning, need to check slammin behaviour_
+- [ ] Any prop with `$staticprop` can now be a static prop (IE physics props)
 - [x] Increased detail sprites limit
 - [x] Custom lightmappedgeneric shaders are supported now (such as SDK_Lightmappedgeneric)
 - [x] Implemented support for `func_detail_blocker`
