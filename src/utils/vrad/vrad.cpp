@@ -25,6 +25,7 @@
 #include "materialsystem/imaterial.h"
 #include "materialsystem/imaterialvar.h"
 #include "utlbuffer.h"
+#include "gamebspfile.h"
 
 #define ALLOWDEBUGOPTIONS (0 || _DEBUG)
 
@@ -2654,6 +2655,26 @@ void VRAD_ComputeOtherLighting()
 	}
 }
 
+void InsertWorldLightsGameLump()
+{
+	int gamelump = g_bHDR ? GAMELUMP_WORLD_LIGHTS_HDR : GAMELUMP_WORLD_LIGHTS;
+	int gamelumpVersion = g_bHDR ? GAMELUMP_WORLD_LIGHTS_HDR_VERSION : GAMELUMP_WORLD_LIGHTS_VERSION;
+
+	GameLumpHandle_t handle = g_GameLumps.GetGameLumpHandle( gamelump );
+	if ( handle != g_GameLumps.InvalidGameLump() )
+		g_GameLumps.DestroyGameLump( handle );
+
+	if ( *pNumworldlights <= 0 )
+		return;
+
+	size_t size = sizeof( dworldlight_t ) * ( *pNumworldlights );
+	handle = g_GameLumps.CreateGameLump( gamelump, size, 0, gamelumpVersion );
+
+	// Serialize the data
+	CUtlBuffer buf( g_GameLumps.GetGameLump( handle ), size );
+	buf.PutObjects( dworldlights, *pNumworldlights );
+}
+
 extern void CloseDispLuxels();
 
 void VRAD_Finish()
@@ -3338,6 +3359,8 @@ int RunVRAD( int argc, char **argv )
 	}
 
 	VRAD_ComputeOtherLighting();
+
+	InsertWorldLightsGameLump();
 
 	VRAD_Finish();
 
