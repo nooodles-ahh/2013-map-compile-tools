@@ -104,10 +104,12 @@ isstaticprop_ret IsStaticProp( studiohdr_t* pHdr )
 	if (!(pHdr->flags & STUDIOHDR_FLAGS_STATIC_PROP))
 		return RET_FAIL_NOT_MARKED_STATIC_PROP;
 
+	// apparently this is bullshit and it makes more sense to just ignore it
+#if 0
 	// If it's got a propdata section in the model's keyvalues, it's not allowed to be a prop_static
 	KeyValues *modelKeyValues = new KeyValues(pHdr->pszName());
 	if ( StudioKeyValues( pHdr, modelKeyValues ) )
-	{
+	{ 
 		KeyValues *sub = modelKeyValues->FindKey("prop_data");
 		if ( sub )
 		{
@@ -119,7 +121,7 @@ isstaticprop_ret IsStaticProp( studiohdr_t* pHdr )
 		}
 	}
 	modelKeyValues->deleteThis();
-
+#endif
 	return RET_VALID;
 }
 
@@ -616,6 +618,7 @@ void EmitStaticProps()
 				Msg( "Inserting propper_model (%.0f %.0f %.0f) as prop_static: %s\n", build.m_Origin[0], build.m_Origin[1], build.m_Origin[2], modelpath );
 
 				build.m_pModelName = modelpath;
+				build.m_Angles.y = 270; // Rotate the model 90 degrees so it's facing the right way.
 			}
 			else // Otherwise we just assume it's a normal prop_static
 			{
