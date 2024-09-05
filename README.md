@@ -29,8 +29,8 @@
 - [ ] Improved brush precision
 - [x] Leaktest is now enabled by default, command is now `-noleaktest`
 - [x] `-nodefaultcubemap`, disables automatic skybox cubemap generation (necessary for 2013 SP)
-- [ ] `-blocksize`, lets you customise the size of visleaf splitting "blocks", default is every 1024 units
-- [ ] `-visgranularity`, lets you automatically place hint brushes in your map, syntax is `-visgranularity X Y Z`. X, Y and Z can be any integer value, for example, -visgranularity 0 0 512 would create a VIS split every 512 units vertically.
+- [ ] ~~`-blocksize`, lets you customise the size of visleaf splitting "blocks", default is every 1024 units (CSGO)~~ Removed
+- [ ] ~~`-visgranularity`, lets you automatically place hint brushes in your map, syntax is `-visgranularity X Y Z`. X, Y and Z can be any integer value, for example, -visgranularity 0 0 512 would create a VIS split every 512 units vertically. (CSGO)~~ Removed
 - [x] Subsitution of propper_models for prop_statics after Propper has run.
 
 ## VVIS
@@ -58,7 +58,7 @@
 - [ ] `-extrapasses`, lets you scale how many extra passes you want your map to go through, default is 4, differences above this value are extremely minimal _so I might not implement it_
 - [ ] Any prop with `$staticprop` can now be a lit static prop (IE physics props)
 - [ ] Single-line comments can now be placed in .rad files.
-- [ ] Corrected issues related to luxel placement on displacement surfaces, luxels will now be correctly placed, resulting in higher quality lightmaps (with no extra cost)
+- [ ] Corrected issues related to luxel placement on displacement surfaces, luxels will now be correctly placed, resulting in higher quality lightmaps (with no extra cost) _This is probably what causes bizzare displacement lighting issues_
 - [x] Enabled supersampling capabilities for displacement surfaces, further increases lightmap quality, you may experience a very slightly longer compile time
 - [x] Defaults to `.dx90` VTX files when loading models now
 - [ ] `-worldtextureshadows`, allows world polys to cast texture shadows
