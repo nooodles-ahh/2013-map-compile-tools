@@ -1505,10 +1505,6 @@ int RunVBSP( int argc, char **argv )
 
 		LoadMapFile (name);
 
-#ifndef PROPPER
-		InsertVisibilitySplittingHintBrushes();
-#endif
-
 		WorldVertexTransitionFixup();
 		if( ( g_nDXLevel == 0 ) || ( g_nDXLevel >= 70 ) )
 		{

@@ -88,3 +88,5 @@ compile_commands.json
 
 *.pdb
 /game
+
+src/lib/public/fgdlib.lib
