@@ -89,7 +89,6 @@ $Project "Vvis_dll"
 		$File	"..\vmpi\vmpi_distribute_work.h"
 		$File	"..\common\vmpi_tools_shared.h"
 		$File	"$SRCDIR\public\vstdlib\vstdlib.h"
-		$File	"$SRCDIR\public\wadtypes.h"
 	}
 
 	$Folder	"Link Libraries"

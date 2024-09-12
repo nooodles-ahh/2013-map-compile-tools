@@ -169,7 +169,6 @@ $Project
 		$File	"$SRCDIR\public\mathlib\vmatrix.h"
 		$File	"$SRCDIR\public\vphysics_interface.h"
 		$File	"$SRCDIR\public\mathlib\vplane.h"
-		$File	"$SRCDIR\public\wadtypes.h"
 		$File	"$SRCDIR\public\worldsize.h"
 	}
 

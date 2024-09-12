@@ -207,7 +207,6 @@ $Project "Vrad_dll"
 			$File	"$SRCDIR\public\tier0\vprof.h"
 			$File	"$SRCDIR\public\vstdlib\vstdlib.h"
 			$File	"$SRCDIR\public\vtf\vtf.h"
-			$File	"$SRCDIR\public\wadtypes.h"
 			$File	"$SRCDIR\public\worldsize.h"
 		}
 	}
