@@ -936,7 +936,7 @@ qboolean GetTokenizerStatus( char **pFilename, int *pLine )
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef WIN32
+#ifdef _WIN32
 #include <direct.h>
 #include <io.h>
 #include <sys/utime.h>
@@ -1171,7 +1171,7 @@ int CScriptLib::GetFileList( const char* pDirPath, const char* pPattern, CUtlVec
 		strcat( fullPath, pPattern );
 	}
 
-#ifdef WIN32
+#ifdef _WIN32
 	struct _finddata_t findData;
 	intptr_t h = _findfirst( fullPath, &findData );
 	if ( h == -1 )

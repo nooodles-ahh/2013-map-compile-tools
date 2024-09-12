@@ -4551,6 +4551,7 @@ bool CompressGameLump( dheader_t *pInBSPHeader, dheader_t *pOutBSPHeader, CUtlBu
 	return true;
 }
 
+#if 0
 //-----------------------------------------------------------------------------
 // Compress callback for RepackBSP
 //-----------------------------------------------------------------------------
@@ -4576,7 +4577,7 @@ bool RepackBSPCallback_LZMA( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer )
 
 	return false;
 }
-
+#endif
 
 bool RepackBSP( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer, CompressFunc_t pCompressFunc, IZip::eCompressionType packfileCompression )
 {

@@ -1,6 +1,6 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 
-#if defined( WIN32 ) && !defined( _X360 )
+#if (defined(WIN32) || defined(WIN64)) && !defined( _X360 )
 	#include <windows.h>
 #elif defined( POSIX )
 	#include <iconv.h>

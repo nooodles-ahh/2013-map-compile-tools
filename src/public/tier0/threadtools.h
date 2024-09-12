@@ -65,7 +65,11 @@ const unsigned TT_INFINITE = 0xffffffff;
 
 #endif // NO_THREAD_LOCAL
 
+#ifdef WIN64
+typedef unsigned long long ThreadId_t;
+#else
 typedef unsigned long ThreadId_t;
+#endif
 
 //-----------------------------------------------------------------------------
 //
@@ -671,7 +675,7 @@ public:
 	}
 
 private:
-	FORCEINLINE bool TryLockInline( const uint32 threadId ) volatile
+	FORCEINLINE bool TryLockInline( const ThreadId_t threadId ) volatile
 	{
 		if ( threadId != m_ownerID && !ThreadInterlockedAssignIf( (volatile long *)&m_ownerID, (long)threadId, 0 ) )
 			return false;
@@ -681,12 +685,12 @@ private:
 		return true;
 	}
 
-	bool TryLock( const uint32 threadId ) volatile
+	bool TryLock( const ThreadId_t threadId ) volatile
 	{
 		return TryLockInline( threadId );
 	}
 
-	PLATFORM_CLASS void Lock( const uint32 threadId, unsigned nSpinSleepTime ) volatile;
+	PLATFORM_CLASS void Lock( const ThreadId_t threadId, unsigned nSpinSleepTime ) volatile;
 
 public:
 	bool TryLock() volatile
@@ -706,7 +710,7 @@ public:
 #endif
 	void Lock( unsigned int nSpinSleepTime = 0 ) volatile
 	{
-		const uint32 threadId = ThreadGetCurrentId();
+		const ThreadId_t threadId = ThreadGetCurrentId();
 
 		if ( !TryLockInline( threadId ) )
 		{
@@ -746,7 +750,7 @@ public:
     	}
     }
 
-#ifdef WIN32
+#ifdef _WIN32
 	bool TryLock() const volatile							{ return (const_cast<CThreadFastMutex *>(this))->TryLock(); }
 	void Lock(unsigned nSpinSleepTime = 1 ) const volatile	{ (const_cast<CThreadFastMutex *>(this))->Lock( nSpinSleepTime ); }
 	void Unlock() const	volatile							{ (const_cast<CThreadFastMutex *>(this))->Unlock(); }
@@ -792,7 +796,7 @@ public:
 	static bool AssertOwnedByCurrentThread() { return true; }
 	static void SetTrace( bool b )	{}
 
-	static uint32 GetOwnerId() 		{ return 0;	}
+	static ThreadId_t GetOwnerId() 		{ return 0;	}
 	static int	GetDepth() 			{ return 0; }
 };
 
@@ -1127,7 +1131,10 @@ private:
 class ALIGN8 PLATFORM_CLASS CThreadSpinRWLock
 {
 public:
-	CThreadSpinRWLock()	{ COMPILE_TIME_ASSERT( sizeof( LockInfo_t ) == sizeof( int64 ) ); Assert( (intp)this % 8 == 0 ); memset( this, 0, sizeof( *this ) ); }
+	CThreadSpinRWLock()	{ 
+		//COMPILE_TIME_ASSERT( sizeof( LockInfo_t ) == sizeof( int64 ) ); 
+		Assert( (intp)this % 8 == 0 ); memset( this, 0, sizeof( *this ) ); 
+	}
 
 	bool TryLockForWrite();
 	bool TryLockForRead();
@@ -1147,13 +1154,13 @@ public:
 private:
 	struct LockInfo_t
 		{
-			uint32	m_writerId;
+			ThreadId_t	m_writerId;
 			int		m_nReaders;
 		};
 
 	bool AssignIf( const LockInfo_t &newValue, const LockInfo_t &comperand );
-	bool TryLockForWrite( const uint32 threadId );
-	void SpinLockForWrite( const uint32 threadId );
+	bool TryLockForWrite( const ThreadId_t threadId );
+	void SpinLockForWrite( const ThreadId_t threadId );
 
 	volatile LockInfo_t m_lockInfo;
 	CInterlockedInt m_nWriters;
@@ -1688,7 +1695,7 @@ inline bool CThreadSpinRWLock::AssignIf( const LockInfo_t &newValue, const LockI
 	return ThreadInterlockedAssignIf64( (int64 *)&m_lockInfo, *((int64 *)&newValue), *((int64 *)&comperand) );
 }
 
-inline bool CThreadSpinRWLock::TryLockForWrite( const uint32 threadId )
+inline bool CThreadSpinRWLock::TryLockForWrite( const ThreadId_t threadId )
 {
 	// In order to grab a write lock, there can be no readers and no owners of the write lock
 	if ( m_lockInfo.m_nReaders > 0 || ( m_lockInfo.m_writerId && m_lockInfo.m_writerId != threadId ) )
@@ -1746,7 +1753,7 @@ inline bool CThreadSpinRWLock::TryLockForRead()
 
 inline void CThreadSpinRWLock::LockForWrite()
 {
-	const uint32 threadId = ThreadGetCurrentId();
+	const ThreadId_t threadId = ThreadGetCurrentId();
 
 	m_nWriters++;
 

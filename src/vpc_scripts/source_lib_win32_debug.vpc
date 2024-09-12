@@ -74,7 +74,9 @@ $Configuration "Debug"
 		$WholeProgramOptimization
 
 		// Preprocessor
-		$PreprocessorDefinitions			"$BASE;_HAS_ITERATOR_DEBUGGING=0;WIN32;_WIN32;_DEBUG;DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_ALLOW_RUNTIME_LIBRARY_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_MSC_VER_MISMATCH;%(PreprocessorDefinitions)"
+		$PreprocessorDefinitions			"$BASE;WIN32;_WIN32" [$WIN32]
+		$PreprocessorDefinitions			"$BASE;WIN64;_WIN64" [$WIN64]
+		$PreprocessorDefinitions			"$BASE;_HAS_ITERATOR_DEBUGGING=0;_DEBUG;DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_ALLOW_RUNTIME_LIBRARY_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_MSC_VER_MISMATCH;%(PreprocessorDefinitions)"
 		$IgnoreStandardIncludePath
 		$GeneratePreprocessedFile
 		$KeepComments
