@@ -6,6 +6,7 @@
 
 /// FIXME: As soon as all references to mathlib.c are gone, include it in here
 
+#include <algorithm>
 #include <math.h>
 #include <float.h>	// Needed for FLT_EPSILON
 
@@ -16,8 +17,10 @@
 #include "tier0/vprof.h"
 //#define _VPROF_MATHLIB
 
+#ifdef _WIN32
 #pragma warning(disable:4244)   // "conversion from 'const int' to 'float', possible loss of data"
 #pragma warning(disable:4730)	// "mixing _m64 and floating point expressions may result in incorrect code"
+#endif
 
 #include "mathlib/mathlib.h"
 #include "mathlib/vector.h"
@@ -2520,7 +2523,9 @@ void Hermite_SplineBasis( float t, float basis[4] )
 //-----------------------------------------------------------------------------
 
 // BUG: the VectorSubtract()'s calls go away if the global optimizer is enabled
+#ifdef _MSC_VER
 #pragma optimize( "g", off )
+#endif
 
 void Hermite_Spline( const Vector &p0, const Vector &p1, const Vector &p2, float t, Vector& output )
 {
@@ -2530,7 +2535,9 @@ void Hermite_Spline( const Vector &p0, const Vector &p1, const Vector &p2, float
 	Hermite_Spline( p1, p2, e10, e21, t, output );
 }
 
+#ifdef _MSC_VER
 #pragma optimize( "", on )
+#endif
 
 float Hermite_Spline( float p0, float p1, float p2,	float t )
 {
@@ -3139,7 +3146,7 @@ void CalcClosestPointOnLineSegment( const Vector &P, const Vector &vLineA, const
 {
 	Vector vDir;
 	float t = CalcClosestPointToLineT( P, vLineA, vLineB, vDir );
-	t = clamp( t, 0.f, 1.f );
+	t = clamp( t, 0.0f, 1.0f );
 	if ( outT ) 
 	{
 		*outT = t;
@@ -3211,7 +3218,7 @@ void CalcClosestPointOnLineSegment2D( const Vector2D &P, const Vector2D &vLineA,
 {
 	Vector2D vDir;
 	float t = CalcClosestPointToLineT2D( P, vLineA, vLineB, vDir );
-	t = clamp( t, 0.f, 1.f );
+	t = clamp( t, 0.0f, 1.0f );
 	if ( outT )
 	{
 		*outT = t;
@@ -3296,13 +3303,17 @@ bool CalcLineToLineIntersectionSegment(
    return true;
 }
 
+#ifdef _MSC_VER
 #pragma optimize( "", off )
+#endif
 
 #ifndef EXCEPTION_EXECUTE_HANDLER
 #define EXCEPTION_EXECUTE_HANDLER       1
 #endif
 
+#ifdef _MSC_VER
 #pragma optimize( "", on )
+#endif
 
 static bool s_b3DNowEnabled = false;
 static bool s_bMMXEnabled = false;
@@ -4113,8 +4124,8 @@ void HSVtoRGB( const Vector &hsv, Vector &rgb )
 		hue = 0.0F;
 	}
 	hue /= 60.0F;
-	int     i = hue;        // integer part
-	float32 f = hue - i;    // fractional part
+	int     i = static_cast<int>(hue);   // integer part
+	float32 f = hue - i;                 // fractional part
 	float32 p = hsv.z * (1.0F - hsv.y);
 	float32 q = hsv.z * (1.0F - hsv.y * f);
 	float32 t = hsv.z * (1.0F - hsv.y * (1.0F - f));
@@ -4240,64 +4251,3 @@ float RandomVectorInUnitCircle( Vector2D *pVector )
 	pVector->y = flRadius * flSinTheta;
 	return flRadius;
 }
-#ifdef FP_EXCEPTIONS_ENABLED
-#include <float.h> // For _clearfp and _controlfp_s
-#endif
-
-// FPExceptionDisable and FPExceptionEnabler taken from my blog post
-// at http://www.altdevblogaday.com/2012/04/20/exceptional-floating-point/
-
-#ifdef FP_EXCEPTIONS_ENABLED
-// These functions are all inlined NOPs if FP_EXCEPTIONS_ENABLED is not defined.
-FPExceptionDisabler::FPExceptionDisabler()
-{
-	// Retrieve the current state of the exception flags. This
-	// must be done before changing them. _MCW_EM is a bit
-	// mask representing all available exception masks.
-	_controlfp_s(&mOldValues, 0, 0);
-	// Set all of the exception flags, which suppresses FP
-	// exceptions on the x87 and SSE units.
-	_controlfp_s(0, _MCW_EM, _MCW_EM);
-}
-
-FPExceptionDisabler::~FPExceptionDisabler()
-{
-	// Clear any pending FP exceptions. This must be done
-	// prior to enabling FP exceptions since otherwise there
-	// may be a 'deferred crash' as soon the exceptions are
-	// enabled.
-	_clearfp();
-
-	// Reset (possibly enabling) the exception status.
-	_controlfp_s(0, mOldValues, _MCW_EM);
-}
-
-// Overflow, divide-by-zero, and invalid-operation are the FP
-// exceptions most frequently associated with bugs.
-FPExceptionEnabler::FPExceptionEnabler(unsigned int enableBits /*= _EM_OVERFLOW | _EM_ZERODIVIDE | _EM_INVALID*/)
-{
-	// Retrieve the current state of the exception flags. This
-	// must be done before changing them. _MCW_EM is a bit
-	// mask representing all available exception masks.
-	_controlfp_s(&mOldValues, 0, 0);
-
-	// Make sure no non-exception flags have been specified,
-	// to avoid accidental changing of rounding modes, etc.
-	enableBits &= _MCW_EM;
-
-	// Clear any pending FP exceptions. This must be done
-	// prior to enabling FP exceptions since otherwise there
-	// may be a 'deferred crash' as soon the exceptions are
-	// enabled.
-	_clearfp();
-
-	// Zero out the specified bits, leaving other bits alone.
-	_controlfp_s(0, ~enableBits, enableBits);
-}
-
-FPExceptionEnabler::~FPExceptionEnabler()
-{
-	// Reset the exception state.
-	_controlfp_s(0, mOldValues, _MCW_EM);
-}
-#endif

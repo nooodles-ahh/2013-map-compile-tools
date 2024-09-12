@@ -7,9 +7,9 @@
 #ifndef MATH_LIB_H
 #define MATH_LIB_H
 
+#include <cmath>
 #include <math.h>
 #include "tier0/basetypes.h"
-#include "tier0/commonmacros.h"
 #include "mathlib/vector.h"
 #include "mathlib/vector2d.h"
 #include "tier0/dbg.h"
@@ -23,76 +23,6 @@
 
 // XXX remove me
 #undef clamp
-
-// Uncomment this to enable FP exceptions in parts of the code.
-// This can help track down FP bugs. However the code is not
-// FP exception clean so this not a turnkey operation.
-//#define FP_EXCEPTIONS_ENABLED
-
-
-#ifdef FP_EXCEPTIONS_ENABLED
-#include <float.h> // For _clearfp and _controlfp_s
-#endif
-
-// FPExceptionDisabler and FPExceptionEnabler taken from my blog post
-// at http://www.altdevblogaday.com/2012/04/20/exceptional-floating-point/
-
-// Declare an object of this type in a scope in order to suppress
-// all floating-point exceptions temporarily. The old exception
-// state will be reset at the end.
-class FPExceptionDisabler
-{
-public:
-#ifdef FP_EXCEPTIONS_ENABLED
-	FPExceptionDisabler();
-	~FPExceptionDisabler();
-
-private:
-	unsigned int mOldValues;
-#else
-	FPExceptionDisabler() {}
-	~FPExceptionDisabler() {}
-#endif
-
-private:
-	// Make the copy constructor and assignment operator private
-	// and unimplemented to prohibit copying.
-	FPExceptionDisabler(const FPExceptionDisabler&);
-	FPExceptionDisabler& operator=(const FPExceptionDisabler&);
-};
-
-// Declare an object of this type in a scope in order to enable a
-// specified set of floating-point exceptions temporarily. The old
-// exception state will be reset at the end.
-// This class can be nested.
-class FPExceptionEnabler
-{
-public:
-	// Overflow, divide-by-zero, and invalid-operation are the FP
-	// exceptions most frequently associated with bugs.
-#ifdef FP_EXCEPTIONS_ENABLED
-	FPExceptionEnabler(unsigned int enableBits = _EM_OVERFLOW | _EM_ZERODIVIDE | _EM_INVALID);
-	~FPExceptionEnabler();
-
-private:
-	unsigned int mOldValues;
-#else
-	FPExceptionEnabler(unsigned int enableBits = 0)
-	{
-	}
-	~FPExceptionEnabler()
-	{
-	}
-#endif
-
-private:
-	// Make the copy constructor and assignment operator private
-	// and unimplemented to prohibit copying.
-	FPExceptionEnabler(const FPExceptionEnabler&);
-	FPExceptionEnabler& operator=(const FPExceptionEnabler&);
-};
-
-
 
 #ifdef DEBUG  // stop crashing edit-and-continue
 FORCEINLINE float clamp( float val, float minVal, float maxVal )
@@ -380,7 +310,7 @@ inline void VectorNegate(vec_t *a)
 }
 
 
-//#define VectorMaximum(a)		( max( (a)[0], max( (a)[1], (a)[2] ) ) )
+//#define VectorMaximum(a)		( V_max( (a)[0], V_max( (a)[1], (a)[2] ) ) )
 #define Vector2Clear(x)			{(x)[0]=(x)[1]=0;}
 #define Vector2Negate(x)		{(x)[0]=-((x)[0]);(x)[1]=-((x)[1]);}
 #define Vector2Copy(a,b)		{(b)[0]=(a)[0];(b)[1]=(a)[1];}
@@ -660,7 +590,7 @@ inline float RemapValClamped( float val, float A, float B, float C, float D)
 template <class T>
 FORCEINLINE T Lerp( float flPercent, T const &A, T const &B )
 {
-	return A + (B - A) * flPercent;
+	return (T)(A + (B - A) * flPercent);
 }
 
 FORCEINLINE float Sqr( float f )
@@ -2168,7 +2098,7 @@ inline bool CloseEnough( const Vector &a, const Vector &b, float epsilon = EQUAL
 // Fast compare
 // maxUlps is the maximum error in terms of Units in the Last Place. This 
 // specifies how big an error we are willing to accept in terms of the value
-// of the least significant digit of the floating point number’s 
+// of the least significant digit of the floating point numberâ€™s 
 // representation. maxUlps can also be interpreted in terms of how many 
 // representable floats we are willing to accept between A and B. 
 // This function will allow maxUlps-1 floats between A and B.
@@ -2180,7 +2110,6 @@ inline bool AlmostEqual( const Vector &a, const Vector &b, int maxUlps = 10)
 		AlmostEqual( a.y, b.y, maxUlps ) &&
 		AlmostEqual( a.z, b.z, maxUlps );
 }
-
 
 #endif	// MATH_BASE_H
 

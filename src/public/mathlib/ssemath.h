@@ -2407,6 +2407,12 @@ FORCEINLINE i32x4 IntShiftLeftWordSIMD(const i32x4 &vSrcA, const i32x4 &vSrcB)
 // like this.
 FORCEINLINE void ConvertStoreAsIntsSIMD(intx4 * RESTRICT pDest, const fltx4 &vSrc)
 {
+#ifdef COMPILER_MSVC64
+	(*pDest)[0] = SubFloat(vSrc, 0);
+	(*pDest)[1] = SubFloat(vSrc, 1);
+	(*pDest)[2] = SubFloat(vSrc, 2);
+	(*pDest)[3] = SubFloat(vSrc, 3);
+#else
 	__m64 bottom = _mm_cvttps_pi32( vSrc );
 	__m64 top    = _mm_cvttps_pi32( _mm_movehl_ps(vSrc,vSrc) );
 
@@ -2414,6 +2420,7 @@ FORCEINLINE void ConvertStoreAsIntsSIMD(intx4 * RESTRICT pDest, const fltx4 &vSr
 	*reinterpret_cast<__m64 *>(&(*pDest)[2]) = top;
 
 	_mm_empty();
+#endif
 }
 
 
@@ -2810,35 +2817,35 @@ void FourVectors::RotateBy(const matrix3x4_t& matrix)
 		matSplat20, matSplat21, matSplat22;
 
  {
-	// Load the matrix into local vectors. Sadly, matrix3x4_ts are 
-	// often unaligned. The w components will be the tranpose row of
-	// the matrix, but we don't really care about that.
-	fltx4 matCol0 = LoadUnalignedSIMD( matrix[0] );
-	fltx4 matCol1 = LoadUnalignedSIMD( matrix[1] );
-	fltx4 matCol2 = LoadUnalignedSIMD( matrix[2] );
-	
-	matSplat00 = SplatXSIMD( matCol0 );
-	matSplat01 = SplatYSIMD( matCol0 );
-	matSplat02 = SplatZSIMD( matCol0 );
+	 // Load the matrix into local vectors. Sadly, matrix3x4_ts are 
+	 // often unaligned. The w components will be the tranpose row of
+	 // the matrix, but we don't really care about that.
+	 fltx4 matCol0 = LoadUnalignedSIMD( matrix[0] );
+	 fltx4 matCol1 = LoadUnalignedSIMD( matrix[1] );
+	 fltx4 matCol2 = LoadUnalignedSIMD( matrix[2] );
 
-	matSplat10 = SplatXSIMD( matCol1 );
-	matSplat11 = SplatYSIMD( matCol1 );
-	matSplat12 = SplatZSIMD( matCol1 );
-	
-	matSplat20 = SplatXSIMD( matCol2 );
-	matSplat21 = SplatYSIMD( matCol2 );
-	matSplat22 = SplatZSIMD( matCol2 );
+	 matSplat00 = SplatXSIMD( matCol0 );
+	 matSplat01 = SplatYSIMD( matCol0 );
+	 matSplat02 = SplatZSIMD( matCol0 );
+
+	 matSplat10 = SplatXSIMD( matCol1 );
+	 matSplat11 = SplatYSIMD( matCol1 );
+	 matSplat12 = SplatZSIMD( matCol1 );
+
+	 matSplat20 = SplatXSIMD( matCol2 );
+	 matSplat21 = SplatYSIMD( matCol2 );
+	 matSplat22 = SplatZSIMD( matCol2 );
  }
 
-	// Trust in the compiler to schedule these operations correctly:
-	fltx4 outX, outY, outZ;
-	outX = AddSIMD( AddSIMD( MulSIMD( x, matSplat00 ), MulSIMD( y, matSplat01 ) ), MulSIMD( z, matSplat02 ) );
-	outY = AddSIMD( AddSIMD( MulSIMD( x, matSplat10 ), MulSIMD( y, matSplat11 ) ), MulSIMD( z, matSplat12 ) );
-	outZ = AddSIMD( AddSIMD( MulSIMD( x, matSplat20 ), MulSIMD( y, matSplat21 ) ), MulSIMD( z, matSplat22 ) );
-	
-	x = outX;
-	y = outY;
-	z = outZ;
+ // Trust in the compiler to schedule these operations correctly:
+ fltx4 outX, outY, outZ;
+ outX = AddSIMD( AddSIMD( MulSIMD( x, matSplat00 ), MulSIMD( y, matSplat01 ) ), MulSIMD( z, matSplat02 ) );
+ outY = AddSIMD( AddSIMD( MulSIMD( x, matSplat10 ), MulSIMD( y, matSplat11 ) ), MulSIMD( z, matSplat12 ) );
+ outZ = AddSIMD( AddSIMD( MulSIMD( x, matSplat20 ), MulSIMD( y, matSplat21 ) ), MulSIMD( z, matSplat22 ) );
+
+ x = outX;
+ y = outY;
+ z = outZ;
 }
 
 // Assume the given matrix is a rotation, and rotate these vectors by it.
@@ -2855,36 +2862,36 @@ void FourVectors::TransformBy(const matrix3x4_t& matrix)
 		matSplat20, matSplat21, matSplat22;
 
  {
-	// Load the matrix into local vectors. Sadly, matrix3x4_ts are 
-	// often unaligned. The w components will be the tranpose row of
-	// the matrix, but we don't really care about that.
-	fltx4 matCol0 = LoadUnalignedSIMD( matrix[0] );
-	fltx4 matCol1 = LoadUnalignedSIMD( matrix[1] );
-	fltx4 matCol2 = LoadUnalignedSIMD( matrix[2] );
-	
-	matSplat00 = SplatXSIMD( matCol0 );
-	matSplat01 = SplatYSIMD( matCol0 );
-	matSplat02 = SplatZSIMD( matCol0 );
-	
-	matSplat10 = SplatXSIMD( matCol1 );
-	matSplat11 = SplatYSIMD( matCol1 );
-	matSplat12 = SplatZSIMD( matCol1 );
-	
-	matSplat20 = SplatXSIMD( matCol2 );
-	matSplat21 = SplatYSIMD( matCol2 );
-	matSplat22 = SplatZSIMD( matCol2 );
+	 // Load the matrix into local vectors. Sadly, matrix3x4_ts are 
+	 // often unaligned. The w components will be the tranpose row of
+	 // the matrix, but we don't really care about that.
+	 fltx4 matCol0 = LoadUnalignedSIMD( matrix[0] );
+	 fltx4 matCol1 = LoadUnalignedSIMD( matrix[1] );
+	 fltx4 matCol2 = LoadUnalignedSIMD( matrix[2] );
+
+	 matSplat00 = SplatXSIMD( matCol0 );
+	 matSplat01 = SplatYSIMD( matCol0 );
+	 matSplat02 = SplatZSIMD( matCol0 );
+
+	 matSplat10 = SplatXSIMD( matCol1 );
+	 matSplat11 = SplatYSIMD( matCol1 );
+	 matSplat12 = SplatZSIMD( matCol1 );
+
+	 matSplat20 = SplatXSIMD( matCol2 );
+	 matSplat21 = SplatYSIMD( matCol2 );
+	 matSplat22 = SplatZSIMD( matCol2 );
  }
-	
-	// Trust in the compiler to schedule these operations correctly:
-	fltx4 outX, outY, outZ;
-	
-	outX = MaddSIMD( z, matSplat02, AddSIMD( MulSIMD( x, matSplat00 ), MulSIMD( y, matSplat01 ) ) );
-	outY = MaddSIMD( z, matSplat12, AddSIMD( MulSIMD( x, matSplat10 ), MulSIMD( y, matSplat11 ) ) );
-	outZ = MaddSIMD( z, matSplat22, AddSIMD( MulSIMD( x, matSplat20 ), MulSIMD( y, matSplat21 ) ) );
-	
-	x = AddSIMD( outX, ReplicateX4( matrix[0][3] ));
-	y = AddSIMD( outY, ReplicateX4( matrix[1][3] ));
-	 z = AddSIMD( outZ, ReplicateX4( matrix[2][3] ));
+
+ // Trust in the compiler to schedule these operations correctly:
+ fltx4 outX, outY, outZ;
+
+ outX = MaddSIMD( z, matSplat02, AddSIMD( MulSIMD( x, matSplat00 ), MulSIMD( y, matSplat01 ) ) );
+ outY = MaddSIMD( z, matSplat12, AddSIMD( MulSIMD( x, matSplat10 ), MulSIMD( y, matSplat11 ) ) );
+ outZ = MaddSIMD( z, matSplat22, AddSIMD( MulSIMD( x, matSplat20 ), MulSIMD( y, matSplat21 ) ) );
+
+ x = AddSIMD( outX, ReplicateX4( matrix[0][3] ));
+ y = AddSIMD( outY, ReplicateX4( matrix[1][3] ));
+ z = AddSIMD( outZ, ReplicateX4( matrix[2][3] ));
 }
 
 

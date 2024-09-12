@@ -5,19 +5,23 @@
 #if !defined(_STATIC_LINKED) || defined(_SHARED_LIB)
 
 #include "mathlib/IceKey.H"
-#include "tier0/memdbgon.h"
-#pragma warning(disable: 4244)
+#include <cstdint>
 
+#include "tier0/memdbgon.h"
+
+#ifdef _MSC_VER
+#pragma warning(disable: 4244)
+#endif
 
 	/* Structure of a single round subkey */
 class IceSubkey {
     public:
-	unsigned long	val[3];
+	uint32_t	val[3];
 };
 
 
 	/* The S-boxes */
-static unsigned long	ice_sbox[4][1024];
+static uint32_t	ice_sbox[4][1024];
 static int		ice_sboxes_initialised = 0;
 
 
@@ -36,7 +40,7 @@ static const int	ice_sxor[4][4] = {
 				{0xea, 0xcb, 0x2e, 0x04}};
 
 	/* Permutation values for the P-box */
-static const unsigned long	ice_pbox[32] = {
+static const uint32_t	ice_pbox[32] = {
 		0x00000001, 0x00000080, 0x00000400, 0x00002000,
 		0x00080000, 0x00200000, 0x01000000, 0x40000000,
 		0x00000008, 0x00000020, 0x00000100, 0x00004000,
@@ -86,7 +90,7 @@ gf_mult (
  * Raise the base to the power of 7, modulo m.
  */
 
-static unsigned long
+static uint32_t
 gf_exp7 (
 	unsigned int	b,
 	unsigned int		m
@@ -107,12 +111,12 @@ gf_exp7 (
  * Carry out the ICE 32-bit P-box permutation.
  */
 
-static unsigned long
+static uint32_t
 ice_perm32 (
-	unsigned long	x
+	uint32_t	x
 ) {
-	unsigned long		res = 0;
-	const unsigned long	*pbox = ice_pbox;
+	uint32_t		res = 0;
+	const uint32_t	*pbox = ice_pbox;
 
 	while (x) {
 	    if (x & 1)
@@ -138,7 +142,7 @@ ice_sboxes_init (void)
 	for (i=0; i<1024; i++) {
 	    int			col = (i >> 1) & 0xff;
 	    int			row = (i & 0x1) | ((i & 0x200) >> 8);
-	    unsigned long	x;
+	    uint32_t	x;
 
 	    x = gf_exp7 (col ^ ice_sxor[0][row], ice_smod[0][row]) << 24;
 	    ice_sbox[0][i] = ice_perm32 (x);
@@ -200,13 +204,13 @@ IceKey::~IceKey ()
  * The single round ICE f function.
  */
 
-static unsigned long
+static uint32_t
 ice_f (
-	unsigned long	p,
+	uint32_t	p,
 	const IceSubkey		*sk
 ) {
-	unsigned long	tl, tr;		/* Expanded 40-bit values */
-	unsigned long	al, ar;		/* Salted expanded 40-bit values */
+	uint32_t	tl, tr;		/* Expanded 40-bit values */
+	uint32_t	al, ar;		/* Salted expanded 40-bit values */
 
 					/* Left half expansion */
 	tl = ((p >> 16) & 0x3ff) | (((p >> 14) | (p << 18)) & 0xffc00);
@@ -241,14 +245,14 @@ IceKey::encrypt (
 ) const
 {
 	int		i;
-	unsigned long	l, r;
+	uint32_t	l, r;
 
-	l = (((unsigned long) ptext[0]) << 24)
-				| (((unsigned long) ptext[1]) << 16)
-				| (((unsigned long) ptext[2]) << 8) | ptext[3];
-	r = (((unsigned long) ptext[4]) << 24)
-				| (((unsigned long) ptext[5]) << 16)
-				| (((unsigned long) ptext[6]) << 8) | ptext[7];
+	l = (((uint32_t) ptext[0]) << 24)
+				| (((uint32_t) ptext[1]) << 16)
+				| (((uint32_t) ptext[2]) << 8) | ptext[3];
+	r = (((uint32_t) ptext[4]) << 24)
+				| (((uint32_t) ptext[5]) << 16)
+				| (((uint32_t) ptext[6]) << 8) | ptext[7];
 
 	for (i = 0; i < _rounds; i += 2) {
 	    l ^= ice_f (r, &_keysched[i]);
@@ -276,14 +280,14 @@ IceKey::decrypt (
 ) const
 {
 	int		i;
-	unsigned long	l, r;
+	uint32_t	l, r;
 
-	l = (((unsigned long) ctext[0]) << 24)
-				| (((unsigned long) ctext[1]) << 16)
-				| (((unsigned long) ctext[2]) << 8) | ctext[3];
-	r = (((unsigned long) ctext[4]) << 24)
-				| (((unsigned long) ctext[5]) << 16)
-				| (((unsigned long) ctext[6]) << 8) | ctext[7];
+	l = (((uint32_t) ctext[0]) << 24)
+				| (((uint32_t) ctext[1]) << 16)
+				| (((uint32_t) ctext[2]) << 8) | ctext[3];
+	r = (((uint32_t) ctext[4]) << 24)
+				| (((uint32_t) ctext[5]) << 16)
+				| (((uint32_t) ctext[6]) << 8) | ctext[7];
 
 	for (i = _rounds - 1; i > 0; i -= 2) {
 	    l ^= ice_f (r, &_keysched[i]);
@@ -322,7 +326,7 @@ IceKey::scheduleBuild (
 
 	    for (j=0; j<15; j++) {
 		int	k;
-		unsigned long	*curr_sk = &isk->val[j % 3];
+		uint32_t	*curr_sk = &isk->val[j % 3];
 
 		for (k=0; k<4; k++) {
 		    unsigned short	*curr_kb = &kb[(kr + k) & 3];
