@@ -3364,9 +3364,7 @@ int RunVRAD( int argc, char **argv )
 		CmdLib_Exit( 1 );
 	}
 
-	// Initialize the filesystem, so additional commandline options can be loaded
 	Q_StripExtension( argv[ i ], source, sizeof( source ) );
-	CmdLib_InitFileSystem( argv[ i ] );
 	Q_FileBase( source, source, sizeof( source ) );
 
 	static char	materialPath[1024];
@@ -3401,6 +3399,7 @@ int RunVRAD( int argc, char **argv )
 int VRAD_Main(int argc, char **argv)
 {
 	g_pFileSystem = NULL;	// Safeguard against using it before it's properly initialized.
+	CmdLib_InitFileSystem(argv[argc - 1]);
 
 	VRAD_Init();
 
