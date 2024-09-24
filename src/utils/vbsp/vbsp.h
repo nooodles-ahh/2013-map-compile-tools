@@ -391,7 +391,7 @@ void GeneratePropperProps();
 //Carl
 extern bool logging;
 extern bool dobodygroup;
-extern char* sourcefolder;
+extern const char* sourcefolder;
 #define SMOOTH_NO 0
 #define SMOOTH_DEFAULT 1
 #define SMOOTH_GROUPSONLY 2
@@ -504,17 +504,17 @@ struct attachments_t{
 };
 
 struct bodygroups_t{
-	char* groupname;
+	const char* groupname;
 	int body_ents[16];
 };
 extern bodygroups_t bodygroups;
 
 struct model_t{ //lol model T
-	char* ent_name;
-	char* qc_cdmaterials;
-	char* qc_surfaceprop;
+	const char* ent_name;
+	const char* qc_cdmaterials;
+	const char* qc_surfaceprop;
 	float qc_scale;
-	char* qc_modelname;
+	const char* qc_modelname;
 	char basename[128];
 	int phys_entnum;
 	int ref_entnum;
@@ -524,7 +524,7 @@ struct model_t{ //lol model T
 	bool qc_autocenter;
 	bool snaptogrid;
 	float ref_weldvertices;
-	char* phys_entname;
+	const char* phys_entname;
 	bool dophysmodel;
 	bool disp_nowarp;
 	bool physicsprop;
@@ -804,8 +804,8 @@ void SaveVertexNormals( void );
 //=============================================================================
 // cubemap.cpp
 #ifdef PARALLAX_CORRECTED_CUBEMAPS
-extern char *g_pParallaxObbStrs[MAX_MAP_CUBEMAPSAMPLES];
-void Cubemap_InsertSample( const Vector &origin, int size, char *pParallaxObbStr );
+extern const char *g_pParallaxObbStrs[MAX_MAP_CUBEMAPSAMPLES];
+void Cubemap_InsertSample( const Vector &origin, int size, const char *pParallaxObbStr );
 #else
 void Cubemap_InsertSample( const Vector &origin, int size );
 #endif

@@ -1248,9 +1248,9 @@ int CMapFile::SideIDToIndex( int brushSideID )
 // Input  : *mapent - 
 //			*key - 
 //-----------------------------------------------------------------------------
-void ConvertSideList( entity_t *mapent, char *key )
+void ConvertSideList( entity_t *mapent, const char *key )
 {
-	char *pszSideList = ValueForKey( mapent, key );
+	const char *pszSideList = ValueForKey( mapent, key );
 
 	if (pszSideList)
 	{
@@ -1298,10 +1298,12 @@ void ConvertSideList( entity_t *mapent, char *key )
 ChunkFileResult_t HandleNoDynamicShadowsEnt( entity_t *pMapEnt )
 {
 	// Get the list of the sides.
-	char *pSideList = ValueForKey( pMapEnt, "sides" );
+	const char *pSideList = ValueForKey( pMapEnt, "sides" );
+	char szSideList[1024];
+	V_strcpy_safe(szSideList, pSideList);
 
 	// Parse the side list.
-	char *pScan = strtok( pSideList, " " );
+	char *pScan = strtok( szSideList, " " );
 	if( pScan )
 	{
 		do
@@ -1639,7 +1641,7 @@ ChunkFileResult_t CMapFile::LoadEntityCallback(CChunkFile *pFile, int nParam)
 			{
 				const char *pSideListStr = ValueForKey( mapent, "sides" );
 #ifdef PARALLAX_CORRECTED_CUBEMAPS
-				char *pParallaxObbStr = ValueForKey( mapent, "parallaxobb" );
+				const char *pParallaxObbStr = ValueForKey( mapent, "parallaxobb" );
 #endif
 				int size;
 				size = IntForKey( mapent, "cubemapsize" );
@@ -1783,7 +1785,7 @@ ChunkFileResult_t CMapFile::LoadEntityCallback(CChunkFile *pFile, int nParam)
 			m->mass = FloatForKey( mapent, "mass" );
 			V_FileBase(m->qc_modelname, &m->basename[0], 128);
 			sourcefolder = ValueForKey( mapent, "sourcefolder" );
-			Q_FixSlashes( sourcefolder );
+			ConMsg("TODO: Fix slashes: %s\n", sourcefolder);
 			m->qc_cdmaterials = ValueForKey( mapent, "materialpath" );
 			m->qc_surfaceprop = ValueForKey( mapent, "surfaceprop" );
 			m->phys_entname = ValueForKey( mapent, "physmodel" );
@@ -1949,7 +1951,7 @@ void CMapFile::ForceFuncAreaPortalWindowContents()
 {
 	// Now go through all areaportal entities and force CONTENTS_WINDOW
 	// on the brushes of the bmodels they point at.
-	char *targets[] = {"target", "BackgroundBModel"};
+	const char *targets[] = {"target", "BackgroundBModel"};
 	int nTargets = sizeof(targets) / sizeof(targets[0]);
 
 	for( int i=0; i < num_entities; i++ )
@@ -2157,10 +2159,10 @@ void CMapFile::CheckForInstances( const char *pszFileName )
 	// automatically done in this processing.
 	for ( int i = 0; i < num_entities; i++ )
 	{
-		char *pEntity = ValueForKey( &entities[ i ], "classname" );
+		const char *pEntity = ValueForKey( &entities[ i ], "classname" );
 		if ( !strcmp( pEntity, "func_instance" ) )
 		{
-			char *pInstanceFile = ValueForKey( &entities[ i ], "file" );
+			const char *pInstanceFile = ValueForKey( &entities[ i ], "file" );
 			if ( pInstanceFile[ 0 ] )
 			{
 				char	InstancePath[ MAX_PATH ];
@@ -2475,8 +2477,8 @@ void CMapFile::MergeEntities( entity_t *pInstanceEntity, CMapFile *Instance, Vec
 	entity_t				*WorldspawnEnt = NULL;
 	GameData::TNameFixup	FixupStyle;
 
-	char *pTargetName = ValueForKey( pInstanceEntity, "targetname" );
-	char *pName = ValueForKey( pInstanceEntity, "name" );
+	const char *pTargetName = ValueForKey( pInstanceEntity, "targetname" );
+	const char *pName = ValueForKey( pInstanceEntity, "name" );
 	if ( pTargetName[ 0 ] )
 	{
 		sprintf( NameFixup, "%s", pTargetName );
@@ -2492,7 +2494,7 @@ void CMapFile::MergeEntities( entity_t *pInstanceEntity, CMapFile *Instance, Vec
 
 	for( int i = 0; i < num_entities; i++ )
 	{
-		char *pID = ValueForKey( &entities[ i ], "hammerid" );
+		const char *pID = ValueForKey( &entities[ i ], "hammerid" );
 		if ( pID[ 0 ] )
 		{
 			int value = atoi( pID );
@@ -2512,7 +2514,7 @@ void CMapFile::MergeEntities( entity_t *pInstanceEntity, CMapFile *Instance, Vec
 		entity_t *entity = &entities[ num_entities + i ];
 		entity->firstbrush += ( nummapbrushes - Instance->nummapbrushes );
 
-		char *pID = ValueForKey( entity, "hammerid" );
+		const char *pID = ValueForKey( entity, "hammerid" );
 		if ( pID[ 0 ] )
 		{
 			int value = atoi( pID );
@@ -2522,7 +2524,7 @@ void CMapFile::MergeEntities( entity_t *pInstanceEntity, CMapFile *Instance, Vec
 			SetKeyValue( entity, "hammerid", temp );
 		}
 
-		char *pEntity = ValueForKey( entity, "classname" );
+		const char *pEntity = ValueForKey( entity, "classname" );
 		if ( strcmpi( pEntity, "worldspawn" ) == 0 )
 		{
 			WorldspawnEnt = entity;
@@ -2548,7 +2550,7 @@ void CMapFile::MergeEntities( entity_t *pInstanceEntity, CMapFile *Instance, Vec
 				for( int i = 0; i < EntClass->GetVariableCount(); i++ )
 				{
 					GDinputvariable *EntVar = EntClass->GetVariableAt( i );
-					char *pValue = ValueForKey( entity, ( char * )EntVar->GetName() );
+					const char *pValue = ValueForKey( entity, ( char * )EntVar->GetName() );
 					if ( GD.RemapKeyValue( EntVar->GetName(), pValue, temp, FixupStyle ) )
 					{
 #ifdef MERGE_INSTANCE_DEBUG_INFO
@@ -3315,7 +3317,7 @@ void CMapFile::TestExpandBrushes (void)
 	side_t	*s;
 	int		i, j, bn;
 	winding_t	*w;
-	char	*name = "expanded.map";
+	const char	*name = "expanded.map";
 	mapbrush_t	*brush;
 	vec_t	dist;
 

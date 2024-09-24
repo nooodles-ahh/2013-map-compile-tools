@@ -180,7 +180,6 @@ public:
 typedef WCKeyValuesT<WCKVBase_Dict> WCKeyValues;
 typedef WCKeyValuesT<WCKVBase_Vector> WCKeyValuesVector;
 
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : nIndex - 
@@ -188,7 +187,7 @@ typedef WCKeyValuesT<WCKVBase_Vector> WCKeyValuesVector;
 template<class Base>
 inline const char *WCKeyValuesT<Base>::GetKey(int nIndex) const
 {
-	return(m_KeyValues.Element(nIndex).szKey);
+	return(Base::m_KeyValues.Element(nIndex).szKey);
 }
 
 
@@ -200,7 +199,7 @@ inline const char *WCKeyValuesT<Base>::GetKey(int nIndex) const
 template<class Base>
 inline MDkeyvalue &WCKeyValuesT<Base>::GetKeyValue(int nIndex)
 {
-	return(m_KeyValues.Element(nIndex));
+	return(Base::m_KeyValues.Element(nIndex));
 }
 
 
@@ -212,7 +211,7 @@ inline MDkeyvalue &WCKeyValuesT<Base>::GetKeyValue(int nIndex)
 template<class Base>
 inline const MDkeyvalue& WCKeyValuesT<Base>::GetKeyValue(int nIndex) const
 {
-	return(m_KeyValues.Element(nIndex));
+	return(Base::m_KeyValues.Element(nIndex));
 }
 
 
@@ -223,7 +222,7 @@ inline const MDkeyvalue& WCKeyValuesT<Base>::GetKeyValue(int nIndex) const
 template<class Base>
 inline const char *WCKeyValuesT<Base>::GetValue(int nIndex) const
 {
-	return(m_KeyValues.Element(nIndex).szValue);
+	return(Base::m_KeyValues.Element(nIndex).szValue);
 }
 
 
