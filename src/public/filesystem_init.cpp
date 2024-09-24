@@ -1095,6 +1095,7 @@ FSReturnCode_t FileSystem_GetFileSystemDLLName( char *pFileSystemDLL, int nMaxLe
 	// Assume we'll use local files
 	Q_snprintf( pFileSystemDLL, nMaxLen, "%s%cfilesystem_stdio" DLL_EXT_STRING, executablePath, CORRECT_PATH_SEPARATOR );
 
+#if 0
 	#if !defined( _X360 )
 
 		// Use filsystem_steam if it exists?
@@ -1112,7 +1113,7 @@ FSReturnCode_t FileSystem_GetFileSystemDLLName( char *pFileSystemDLL, int nMaxLe
 			bSteam = true;
 		}
 	#endif
-
+#endif
 	return FS_OK;
 }
 
