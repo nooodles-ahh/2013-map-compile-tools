@@ -73,9 +73,11 @@ char		outbase[32];
 
 char		g_szEmbedDir[MAX_PATH] = { 0 };
 
+int g_blockSize = 1024;
+
 // HLTOOLS: Introduce these calcs to make the block algorithm proportional to the proper 
 // world coordinate extents.  Assumes square spatial constraints.
-#define BLOCKS_SIZE		1024
+#define BLOCKS_SIZE		g_blockSize
 #define BLOCKS_SPACE	(COORD_EXTENT/BLOCKS_SIZE)
 #define BLOCKX_OFFSET	((BLOCKS_SPACE/2)+1)
 #define BLOCKY_OFFSET	((BLOCKS_SPACE/2)+1)
@@ -87,7 +89,7 @@ int			block_xl = BLOCKS_MIN, block_xh = BLOCKS_MAX, block_yl = BLOCKS_MIN, block
 int			entity_num;
 
 
-node_t		*block_nodes[BLOCKS_SPACE+2][BLOCKS_SPACE+2];
+node_t*** block_nodes;
 
 //-----------------------------------------------------------------------------
 // Assign occluder areas (must happen *after* the world model is processed)
@@ -219,6 +221,14 @@ void ProcessWorldModel (void)
 	brush_start = e->firstbrush;
 	brush_end = brush_start + e->numbrushes;
 	leaked = false;
+
+	const int allocSize = BLOCKS_SPACE + 2;
+	block_nodes = (node_t***)malloc(allocSize * sizeof(node_t**));
+	for (int i = 0; i < allocSize; i++)
+	{
+		block_nodes[i] = (node_t**)malloc(allocSize * sizeof(node_t*));
+		V_memset(block_nodes[i], 0, allocSize * sizeof(node_t*));
+	}
 
 	//
 	// perform per-block operations
@@ -1222,6 +1232,11 @@ int RunVBSP( int argc, char **argv )
 		{
 			g_bPropperStripEntities = true;
 		}
+		else if (!V_stricmp(argv[i], "-blocksize"))
+		{
+			g_blockSize = atoi(argv[i + 1]);
+			i++;
+		}
 		else if ( !Q_stricmp( argv[i], "-embed" ) && i < argc - 1 )
 		{
 			V_MakeAbsolutePath( g_szEmbedDir, sizeof( g_szEmbedDir ), argv[++i], "." );
@@ -1327,6 +1342,7 @@ int RunVBSP( int argc, char **argv )
 				"  -snapaxial   : Snap axial planes to integer coordinates.\n"
 				"  -block # #      : Control the grid size mins that vbsp chops the level on.\n"
 				"  -blocks # # # # : Enter the mins and maxs for the grid size vbsp uses.\n"
+				"  -blocksize # :  Control the size of each grid square that vbsp chops the level on. (default: 1024).\n"
 				"  -dumpstaticprops: Dump static props to staticprop*.txt\n"
 				"  -dumpcollide    : Write files with collision info.\n"
 				"  -forceskyvis	   : Enable vis calculations in 3d skybox leaves\n"
