@@ -11,7 +11,6 @@
 #include "radial.h"
 #include "mathlib/bumpvects.h"
 #include "tier1/utlvector.h"
-#include "vmpi.h"
 #include "mathlib/anorms.h"
 #include "map_utils.h"
 #include "mathlib/halton.h"
@@ -22,6 +21,9 @@
 #include "mathlib/quantize.h"
 #include "bitmap/imageformat.h"
 #include "coordsize.h"
+#ifdef MPI
+#include "vmpi.h"
+#endif
 
 enum
 {
@@ -3310,7 +3312,9 @@ void BuildFacelights (int iThread, int facenum)
 		}
 	}
 
+#ifdef MPI
 	if (!g_bUseMPI) 
+#endif
 	{
 		//
 		// This is done on the master node when MPI is used

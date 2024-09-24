@@ -12,9 +12,7 @@
 #include "physdll.h"
 #include "lightmap.h"
 #include "tier1/strtools.h"
-#include "vmpi.h"
 #include "macro_texture.h"
-#include "vmpi_tools_shared.h"
 #include "leaf_ambient_lighting.h"
 #include "tools_minidump.h"
 #include "loadcmdline.h"
@@ -26,10 +24,17 @@
 #include "materialsystem/imaterialvar.h"
 #include "utlbuffer.h"
 #include "gamebspfile.h"
+#ifdef MPI
+#include "vmpi.h"
+#include "vmpi_tools_shared.h"
+#endif
 
 #define ALLOWDEBUGOPTIONS (0 || _DEBUG)
 
 static FileHandle_t pFpTrans = NULL;
+
+IFileSystem* g_pFullFileSystem = nullptr;
+IMaterialSystem* g_pMaterialSystem = nullptr;
 
 /*
 
@@ -2365,12 +2370,14 @@ bool RadWorld_Go()
 	}
 
 	// build initial facelights
+#ifdef MPI
 	if (g_bUseMPI) 
 	{
 		// RunThreadsOnIndividual (numfaces, true, BuildFacelights);
 		RunMPIBuildFacelights();
 	}
 	else 
+#endif
 	{
 		RunThreadsOnIndividual (numfaces, true, BuildFacelights);
 	}
@@ -2425,13 +2432,17 @@ bool RadWorld_Go()
 		StaticDispMgr()->EndTimer();
 
 		// blend bounced light into direct light and save
+#ifdef MPI
 		VMPI_SetCurrentStage( "FinalLightFace" );
 		if ( !g_bUseMPI || g_bMPIMaster )
+#endif
 			RunThreadsOnIndividual (numfaces, true, FinalLightFace);
-		
+
+#ifdef MPI
 		// Distribute the lighting data to workers.
 		VMPI_DistributeLightData();
-			
+#endif
+
 		Msg("FinalLightFace Done\n"); fflush(stdout);
 	}
 
@@ -2488,7 +2499,9 @@ void VRAD_LoadBSP( char const *pFilename )
 	// so we prepend qdir here.
 	strcpy( source, ExpandPath( source ) );
 
+#ifdef MPI
 	if ( !g_bUseMPI )
+#endif
 	{
 		// Setup the logfile.
 		char logFile[512];
@@ -2526,10 +2539,13 @@ void VRAD_LoadBSP( char const *pFilename )
 	Q_DefaultExtension(source, ".bsp", sizeof( source ));
 
 	Msg( "Loading %s\n", source );
+#ifdef MPI
 	VMPI_SetCurrentStage( "LoadBSPFile" );
+#endif
 	LoadBSPFile (source);
 
 	// Add this bsp to our search path so embedded resources can be found
+#ifdef MPI
 	if ( g_bUseMPI && g_bMPIMaster )
 	{
 		// MPI Master, MPI workers don't need to do anything
@@ -2537,6 +2553,7 @@ void VRAD_LoadBSP( char const *pFilename )
 		g_pOriginalPassThruFileSystem->AddSearchPath(source, "MOD", PATH_ADD_TO_HEAD);
 	}
 	else if ( !g_bUseMPI )
+#endif
 	{
 		// Non-MPI
 		g_pFullFileSystem->AddSearchPath(source, "GAME", PATH_ADD_TO_HEAD);
@@ -2688,7 +2705,9 @@ void VRAD_Finish()
 	}
 
 	Msg( "Writing %s\n", source );
+#ifdef MPI
 	VMPI_SetCurrentStage( "WriteBSPFile" );
+#endif
 	WriteBSPFile(source);
 
 	if ( g_bDumpPatches )
@@ -3191,7 +3210,11 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		else if ( !Q_strncasecmp( argv[i], "-mpi", 4 ) || !Q_strncasecmp( argv[i-1], "-mpi", 4 ) )
 		{
 			if ( stricmp( argv[i], "-mpi" ) == 0 )
+#ifdef MPI
 				g_bUseMPI = true;
+#else
+				Warning("VMPI support not available in this build.\n");
+#endif
 		
 			// Any other args that start with -mpi are ok too.
 			if ( i == argc - 1 && V_stricmp( argv[i], "-mpi_ListParams" ) != 0 )
@@ -3364,7 +3387,9 @@ int RunVRAD( int argc, char **argv )
 
 	VRAD_Finish();
 
+#ifdef MPI
 	VMPI_SetCurrentStage( "master done" );
+#endif
 
 	DeleteCmdLine( argc, argv );
 	ShutdownMaterialSystem();
@@ -3379,10 +3404,10 @@ int VRAD_Main(int argc, char **argv)
 
 	VRAD_Init();
 
+#ifdef MPI
 	// This must come first.
 	VRAD_SetupMPI( argc, argv );
 
-#if !defined( _DEBUG )
 	if ( g_bUseMPI && !g_bMPIMaster )
 	{
 		SetupToolsMinidumpHandler( VMPI_ExceptionFilter );
