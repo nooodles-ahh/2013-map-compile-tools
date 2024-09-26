@@ -29,11 +29,12 @@
 #include "materialsystem/hardwareverts.h"
 #include "materialsystem/hardwaretexels.h"
 #include "byteswap.h"
-#include "vtf/vtf.h"
 #include "tier1/utldict.h"
 #include "tier1/utlsymbol.h"
 #include "bitmap/tgawriter.h"
-
+#ifdef PLATFORM_64BITS
+#include <vtfpp/vtfpp.h>
+#endif
 #ifdef MPI
 #include "mpivrad.h"
 #include "messbuf.h"
@@ -497,7 +498,7 @@ bool LoadStudioModel( char const* pModelName, CUtlBuffer& buf )
 	}
 
 	// ensure reset
-	pHdr->pVertexBase = NULL;
+	pHdr->SetVertexBase(nullptr);
 	pHdr->pIndexBase  = NULL;
 
 	return true;
@@ -655,24 +656,50 @@ public:
 		Q_strncat( szPath, ".vtf", sizeof( szPath ), COPY_ALL_CHARACTERS );
 		Q_FixSlashes( szPath, CORRECT_PATH_SEPARATOR );
 
+		FileHandle_t hFile = g_pFileSystem->Open(szPath, "rb");
+		if (hFile == FILESYSTEM_INVALID_HANDLE)
+			return NULL;
+
+#ifdef PLATFORM_64BITS
+		// Read the file in
+		std::vector<std::byte> tempData;
+		tempData.reserve(g_pFileSystem->Size(hFile));
+		g_pFileSystem->Read(tempData.data(), tempData.size(), hFile);
+		g_pFileSystem->Close(hFile);
+
+		// Now make a texture out of it.
+		vtfpp::VTF vtf{ tempData };
+		if (!vtf.hasImageData())
+			Error("vtfpp::VTF( %s ) failed.", szPath);
+
+
+		*pWidth = vtf.getWidth();
+		*pHeight = vtf.getHeight();
+		*pClampU = vtf.getFlags() & vtfpp::VTF::Flags::FLAG_CLAMP_S;
+		*pClampV = vtf.getFlags() & vtfpp::VTF::Flags::FLAG_CLAMP_T;
+
+		std::vector<std::byte> data = vtf.getImageDataAsRGBA8888(0, 0, 0, 0); // Get it in a format we like.
+		std::byte* pDstImage = new std::byte[data.size()];
+		std::copy(data.begin(), data.end(), pDstImage);
+#else
 		CUtlBuffer buf;
-		if ( !LoadFileIntoBuffer( buf, szPath ) )
+		if (!LoadFileIntoBuffer(buf, szPath))
 			return NULL;
-		IVTFTexture *pTex = CreateVTFTexture();
-		if (!pTex->Unserialize( buf ))
+		IVTFTexture* pTex = CreateVTFTexture();
+		if (!pTex->Unserialize(buf))
 			return NULL;
-		Msg("Loaded alpha texture %s\n", szPath );
-		unsigned char *pSrcImage = pTex->ImageData( 0, 0, 0, 0, 0, 0 );
+		Msg("Loaded alpha texture %s\n", szPath);
+		unsigned char* pSrcImage = pTex->ImageData(0, 0, 0, 0, 0, 0);
 		int iWidth = pTex->Width();
 		int iHeight = pTex->Height();
 		ImageFormat dstFormat = IMAGE_FORMAT_RGBA8888;
 		ImageFormat srcFormat = pTex->Format();
 		*pClampU = (pTex->Flags() & TEXTUREFLAGS_CLAMPS) ? true : false;
 		*pClampV = (pTex->Flags() & TEXTUREFLAGS_CLAMPT) ? true : false;
-		unsigned char *pDstImage = new unsigned char[ImageLoader::GetMemRequired( iWidth, iHeight, 1, dstFormat, false )];
+		unsigned char* pDstImage = new unsigned char[ImageLoader::GetMemRequired(iWidth, iHeight, 1, dstFormat, false)];
 
-		if( !ImageLoader::ConvertImageFormat( pSrcImage, srcFormat, 
-			pDstImage, dstFormat, iWidth, iHeight, 0, 0 ) )
+		if (!ImageLoader::ConvertImageFormat(pSrcImage, srcFormat,
+			pDstImage, dstFormat, iWidth, iHeight, 0, 0))
 		{
 			delete[] pDstImage;
 			return NULL;
@@ -680,7 +707,8 @@ public:
 
 		*pWidth = iWidth;
 		*pHeight = iHeight;
-		return pDstImage;
+#endif
+		return (unsigned char*)pDstImage;
 	}
 
 	// Checks the database for the material and loads if necessary
@@ -1109,9 +1137,9 @@ void CVradStaticPropMgr::Shutdown()
 		studiohdr_t *pStudioHdr = m_StaticPropDict[i].m_pStudioHdr;
 		if ( pStudioHdr )
 		{
-			if ( pStudioHdr->pVertexBase )
+			if ( pStudioHdr->GetVertexBase() )
 			{
-				free( pStudioHdr->pVertexBase );
+				free( pStudioHdr->GetVertexBase());
 			}
 			free( pStudioHdr );
 		}
@@ -1558,7 +1586,7 @@ void CVradStaticPropMgr::SerializeLighting()
 
 		// align to start of vertex data
 		unsigned char *pVertexData = (unsigned char *)(sizeof( HardwareVerts::FileHeader_t ) + m_StaticProps[i].m_MeshData.Count()*sizeof(HardwareVerts::MeshHeader_t));
-		pVertexData = (unsigned char*)pVhvHdr + ALIGN_TO_POW2( (unsigned int)pVertexData, 512 );
+		pVertexData = (unsigned char*)pVhvHdr + ALIGN_TO_POW2( (uintp)pVertexData, 512 );
 		
 		// construct header
 		pVhvHdr->m_nVersion     = VHV_VERSION;
@@ -1574,7 +1602,7 @@ void CVradStaticPropMgr::SerializeLighting()
 			HardwareVerts::MeshHeader_t *pMesh = pVhvHdr->pMesh( n );
 			pMesh->m_nLod      = m_StaticProps[i].m_MeshData[n].m_nLod;
 			pMesh->m_nVertexes = m_StaticProps[i].m_MeshData[n].m_VertexColors.Count();
-			pMesh->m_nOffset   = (unsigned int)pVertexData - (unsigned int)pVhvHdr; 
+			pMesh->m_nOffset   = (uintp)pVertexData - (uintp)pVhvHdr;
 
 			// construct vertexes
 			for (int k=0; k<pMesh->m_nVertexes; k++)
@@ -1596,8 +1624,8 @@ void CVradStaticPropMgr::SerializeLighting()
 		}
 
 		// align to end of file
-		pVertexData = (unsigned char *)((unsigned int)pVertexData - (unsigned int)pVhvHdr);
-		pVertexData = (unsigned char*)pVhvHdr + ALIGN_TO_POW2( (unsigned int)pVertexData, 512 );
+		pVertexData = (unsigned char *)((uintp)pVertexData - (uintp)pVhvHdr);
+		pVertexData = (unsigned char*)pVhvHdr + ALIGN_TO_POW2( (uintp)pVertexData, 512 );
 
 		AddBufferToPak( GetPakFile(), filename, (void*)pVhvHdr, pVertexData - (unsigned char*)pVhvHdr, false );
 	}
@@ -1633,7 +1661,7 @@ void CVradStaticPropMgr::SerializeLighting()
 
 		// align start of texel data
 		unsigned char *pTexelData = (unsigned char *)(sizeof(HardwareTexels::FileHeader_t) + m_StaticProps[i].m_MeshData.Count() * sizeof(HardwareTexels::MeshHeader_t));
-		pTexelData = (unsigned char*)pVhtHdr + ALIGN_TO_POW2((unsigned int)pTexelData, kAlignment);
+		pTexelData = (unsigned char*)pVhtHdr + ALIGN_TO_POW2((uintp)pTexelData, kAlignment);
 
 		pVhtHdr->m_nVersion	    = VHT_VERSION;
 		pVhtHdr->m_nChecksum    = m_StaticPropDict[m_StaticProps[i].m_ModelIdx].m_pStudioHdr->checksum;
@@ -1644,7 +1672,7 @@ void CVradStaticPropMgr::SerializeLighting()
 		{
 			HardwareTexels::MeshHeader_t *pMesh = pVhtHdr->pMesh(n);
 			pMesh->m_nLod = m_StaticProps[i].m_MeshData[n].m_nLod;
-			pMesh->m_nOffset = (unsigned int)pTexelData - (unsigned int)pVhtHdr;
+			pMesh->m_nOffset = (uintp)pTexelData - (uintp)pVhtHdr;
 			pMesh->m_nBytes = m_StaticProps[i].m_MeshData[n].m_TexelsEncoded.Count();
 			pMesh->m_nWidth = m_StaticProps[i].m_LightmapImageWidth;
 			pMesh->m_nHeight = m_StaticProps[i].m_LightmapImageHeight;
@@ -1653,8 +1681,8 @@ void CVradStaticPropMgr::SerializeLighting()
 			pTexelData += m_StaticProps[i].m_MeshData[n].m_TexelsEncoded.Count();
 		}
 
-		pTexelData = (unsigned char *)((unsigned int)pTexelData - (unsigned int)pVhtHdr);
-		pTexelData = (unsigned char*)pVhtHdr + ALIGN_TO_POW2((unsigned int)pTexelData, kAlignment);
+		pTexelData = (unsigned char *)((uintp)pTexelData - (uintp)pVhtHdr);
+		pTexelData = (unsigned char*)pVhtHdr + ALIGN_TO_POW2((uintp)pTexelData, kAlignment);
 
 		AddBufferToPak(GetPakFile(), filename, (void*)pVhtHdr, pTexelData - (unsigned char*)pVhtHdr, false);
 	}
@@ -2177,9 +2205,9 @@ const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void *pModelData )
 	studiohdr_t *pActiveStudioHdr = static_cast<studiohdr_t *>(pModelData);
 	Assert( pActiveStudioHdr );
 
-	if ( pActiveStudioHdr->pVertexBase )
+	if ( pActiveStudioHdr->GetVertexBase() )
 	{
-		return (vertexFileHeader_t *)pActiveStudioHdr->pVertexBase;
+		return (vertexFileHeader_t *)pActiveStudioHdr->GetVertexBase();
 	}
 
 	// mandatory callback to make requested data resident
@@ -2238,7 +2266,8 @@ const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void *pModelData )
 	free( pVvdHdr );
 	pVvdHdr = pNewVvdHdr;
 
-	pActiveStudioHdr->pVertexBase = (void*)pVvdHdr;
+	// Never actually used so we can not 
+	pActiveStudioHdr->SetVertexBase((void*)pVvdHdr);
 	return pVvdHdr;
 }
 
@@ -2635,6 +2664,15 @@ static void FilterCoarserMipmaps(unsigned int _resX, unsigned int _resY, CUtlVec
 // ------------------------------------------------------------------------------------------------
 static void ConvertToDestinationFormat(unsigned int _resX, unsigned int _resY, ImageFormat _destFmt, const CUtlVector<RGB888_t>& _scratchRBG888, CUtlMemory<byte>* _outTexture)
 {
+#if PLATFORM_64BITS
+	const vtfpp::ImageFormat cSrcImageFormat = vtfpp::ImageFormat::RGB888;
+	// TODO convert to destination format incase we don't use rgb888
+	if(cSrcImageFormat != (vtfpp::ImageFormat)_destFmt)
+		Error("ConvertToDestinationFormat: cSrcImageFormat != _destFmt");
+
+	(*_outTexture).EnsureCapacity(_scratchRBG888.Count());
+	V_memcpy((*_outTexture).Base(), _scratchRBG888.Base(), _scratchRBG888.Count());
+#else
 	const ImageFormat cSrcImageFormat = IMAGE_FORMAT_RGB888;
 
 	// Converts from the scratch RGB888 buffer, which should be fully filled out to the output texture.
@@ -2668,6 +2706,7 @@ static void ConvertToDestinationFormat(unsigned int _resX, unsigned int _resY, I
 		// But sometimes (particularly for debugging) they will be the same.
 		Q_memcpy( (*_outTexture).Base(), _scratchRBG888.Base(), destMemoryUsage );
 	}
+#endif
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -2687,6 +2726,7 @@ static void ConvertTexelDataToTexture(unsigned int _resX, unsigned int _resY, Im
 // ------------------------------------------------------------------------------------------------
 static void DumpLightmapLinear( const char* _dstFilename, const CUtlVector<colorTexel_t>& _srcTexels, int _width, int _height )
 {
+#ifndef PLATFORM_64BITS
 	CUtlVector< Vector > linearFloats;
 	CUtlVector< BGR888_t > linearBuffer;
 	BuildFineMipmap( _width, _height, true, _srcTexels, NULL, &linearFloats );
@@ -2699,4 +2739,5 @@ static void DumpLightmapLinear( const char* _dstFilename, const CUtlVector<color
 	}
 	
 	TGAWriter::WriteTGAFile( _dstFilename, _width, _height, IMAGE_FORMAT_BGR888, (uint8*)(linearBuffer.Base()), _width * ImageLoader::SizeInBytes(IMAGE_FORMAT_BGR888) );
+#endif
 }

@@ -96,6 +96,5 @@ $Project "Vvis_dll"
 	{
 		$Lib mathlib
 		$Lib vmpi [$MPI]
-		$Lib "$LIBCOMMON/lzma"
 	}
 }

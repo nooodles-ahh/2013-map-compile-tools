@@ -12,7 +12,9 @@
 #include "tier1/utldict.h"
 #include "tier1/utlbuffer.h"
 #include "bitmap/imageformat.h"
-
+#ifdef PLATFORM_64BITS
+#include <vtfpp/vtfpp.h>
+#endif
 
 class CMacroTextureData
 {
@@ -47,24 +49,36 @@ CMacroTextureData* LoadMacroTextureFile( const char *pFilename )
 		return NULL;
 
 	// Read the file in.
-	CUtlVector<char> tempData;
-	tempData.SetSize( g_pFileSystem->Size( hFile ) );
-	g_pFileSystem->Read( tempData.Base(), tempData.Count(), hFile );
-	g_pFileSystem->Close( hFile );
-	
-	
-	// Now feed the data into a CUtlBuffer (great...)
-	CUtlBuffer buf;
-	buf.Put( tempData.Base(), tempData.Count() );
+#ifdef PLATFORM_64BITS
+	std::vector<std::byte> tempData;
+	tempData.reserve(g_pFileSystem->Size(hFile));
+	g_pFileSystem->Read(tempData.data(), tempData.size(), hFile);
+	g_pFileSystem->Close(hFile);
 
-	
+	vtfpp::VTF vtf{ tempData };
+	if (!vtf.hasImageData())
+		Error("vtfpp::VTF( %s ) failed.", pFilename);
+
+	std::vector<std::byte> data = vtf.getImageDataAsRGBA8888(0, 0, 0, 0); // Get it in a format we like.
+
+	CMacroTextureData* pData = new CMacroTextureData;
+	pData->m_Width = vtf.getWidth();
+	pData->m_Height = vtf.getHeight();
+	pData->m_ImageData.EnsureCapacity(pData->m_Width * pData->m_Height * 4);
+	memcpy(pData->m_ImageData.Base(), data.data(), pData->m_Width * pData->m_Height * 4);
+
+#else
+	CUtlBuffer buf;
+	buf.EnsureCapacity(g_pFileSystem->Size(hFile));
+	g_pFileSystem->Read(buf.Base(), buf.Size(), hFile);
+	g_pFileSystem->Close(hFile);
+
 	// Now make a texture out of it.
 	IVTFTexture *pTex = CreateVTFTexture();
 	if ( !pTex->Unserialize( buf ) )
 		Error( "IVTFTexture::Unserialize( %s ) failed.", pFilename );
 
 	pTex->ConvertImageFormat( IMAGE_FORMAT_RGBA8888, false );	// Get it in a format we like.
-
 	
 	// Now convert to a CMacroTextureData.
 	CMacroTextureData *pData = new CMacroTextureData;
@@ -75,7 +89,8 @@ CMacroTextureData* LoadMacroTextureFile( const char *pFilename )
 
 	DestroyVTFTexture( pTex );
 
-	Msg( "-- LoadMacroTextureFile: %s\n", pFilename );
+#endif
+	Msg("-- LoadMacroTextureFile: %s\n", pFilename);
 	return pData;
 }
 

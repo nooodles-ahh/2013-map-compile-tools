@@ -294,7 +294,11 @@ CSysModule *Sys_LoadModule( const char *pModuleName, Sys_Flags flags /* = SYS_NO
 
 		char szAbsoluteModuleName[1024];
 		size_t cCwd = strlen( szCwd );
+#ifdef PLATFORM_64BITS
+		if (strstr(pModuleName, "x64/") == pModuleName || (szCwd[cCwd - 1] == '4' && szCwd[cCwd - 2] == '6' && szCwd[cCwd - 3] == 'x'))
+#else
 		if ( strstr( pModuleName, "bin/") == pModuleName || ( szCwd[ cCwd - 1 ] == 'n'  && szCwd[ cCwd - 2 ] == 'i' && szCwd[ cCwd - 3 ] == 'b' )  )
+#endif
 		{
 			// don't make bin/bin path
 			Q_snprintf( szAbsoluteModuleName, sizeof(szAbsoluteModuleName), "%s/%s", szCwd, pModuleName );			

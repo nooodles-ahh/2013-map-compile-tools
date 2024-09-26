@@ -102,7 +102,7 @@ void CRC32_ProcessBuffer(CRC32_t *pulCRC, const void *pBuffer, int nBuffer)
 {
 	CRC32_t ulCrc = *pulCRC;
 	unsigned char *pb = (unsigned char *)pBuffer;
-    unsigned int nFront;
+    uintp nFront;
     int nMain;
 
 JustAfew:
@@ -147,7 +147,7 @@ JustAfew:
     // The low-order two bits of pb and nBuffer in total control the
     // upfront work.
     //
-    nFront = ((unsigned int)pb) & 3;
+    nFront = ((uintp)pb) & 3;
     nBuffer -= nFront;
     switch (nFront)
     {

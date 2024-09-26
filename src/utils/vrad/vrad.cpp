@@ -1271,8 +1271,8 @@ void MakeScales ( int ndxPatch, transfer_t *all_transfers )
 	ThreadUnlock ();
 }
 
+#ifndef PLATFORM_64BITS
 IVTFTexture *g_pSkyboxCube = nullptr;
-
 //-----------------------------------------------------------------------------
 // Loads VTF files
 //-----------------------------------------------------------------------------
@@ -1552,10 +1552,11 @@ void convert_xyz_to_cube_uv( float x, float y, float z, int *index, float *u, fl
 	*u = 0.5f * ( uc / maxAxis + 1.0f );
 	*v = 0.5f * ( vc / maxAxis + 1.0f );
 }
+#endif
 
 void SampleSkyboxCubeSSE( FourVectors const &vNormals, FourVectors &vColors )
 {
-	
+#ifndef PLATFORM_64BITS
 	if ( g_pSkyboxCube != nullptr )
 	{
 		Vector  vecColors[4] = { Vector( 1.f ) };
@@ -1582,10 +1583,12 @@ void SampleSkyboxCubeSSE( FourVectors const &vNormals, FourVectors &vColors )
 
 		vColors = FourVectors( vecColors[0], vecColors[1], vecColors[2], vecColors[3] );
 	}
+#endif
 }
 
 void SampleSkyboxCube( const Vector &vecNormal, Vector &vColor )
 {
+#ifndef PLATFORM_64BITS
 	if ( g_pSkyboxCube != nullptr )
 	{
 		int iFace = 0;
@@ -1607,6 +1610,7 @@ void SampleSkyboxCube( const Vector &vecNormal, Vector &vColor )
 	}
 	else
 		vColor.Init( 1.f, 1.f, 1.f );
+#endif
 }
 
 /*
@@ -2176,7 +2180,9 @@ void RadWorld_Start()
 	// set up sky cameras
 	ProcessSkyCameras();
 
+#ifndef PLATFORM_64BITS
 	LoadSkyboxCubeMap();
+#endif
 }
 
 
@@ -2721,11 +2727,13 @@ void VRAD_Finish()
 		}
 	}
 
+#ifndef PLATFORM_64BITS
 	if ( g_pSkyboxCube )
 	{
 		DestroyVTFTexture( g_pSkyboxCube );
 		g_pSkyboxCube = nullptr;
 	}
+#endif
 
 	CloseDispLuxels();
 
@@ -3369,7 +3377,7 @@ int RunVRAD( int argc, char **argv )
 
 	static char	materialPath[1024];
 	sprintf( materialPath, "%smaterials", gamedir );
-	InitMaterialSystem( materialPath, CmdLib_GetFileSystemFactory() );
+	//InitMaterialSystem( materialPath, CmdLib_GetFileSystemFactory() );
 	Msg( "materialPath: %s\n", materialPath );
 
 	VRAD_LoadBSP( argv[i] );

@@ -147,11 +147,11 @@ $Project "Vrad_dll"
 
 	$Folder	"Link Libraries"
 	{
-		$Lib bitmap
+		$Lib bitmap [!$WIN64]
 		$Lib mathlib
 		$Lib raytrace
 		$Lib vmpi [$MPI]
-		$Lib vtf
-		$Lib "$LIBCOMMON/lzma"
+		$Lib vtf [!$WIN64]
+		$Lib "$LIBCOMMON/vtfpp" [$WIN64]
 	}
 }

@@ -14,7 +14,7 @@
 #include "utlmultilist.h"
 #include "utlvector.h"
 
-FORWARD_DECLARE_HANDLE( memhandle_t );
+DECLARE_HANDLE_32BIT(memhandle_t);
 
 #define INVALID_MEMHANDLE ((memhandle_t)0xffffffff)
 
@@ -251,7 +251,7 @@ private:
 
 inline unsigned short CDataManagerBase::FromHandle( memhandle_t handle )
 {
-	unsigned int fullWord = (unsigned int)handle;
+	unsigned long fullWord = handle.GetHandleValue();
 	unsigned short serial = fullWord>>16;
 	unsigned short index = fullWord & 0xFFFF;
 	index--;
