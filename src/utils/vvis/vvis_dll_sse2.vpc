@@ -5,8 +5,9 @@
 //-----------------------------------------------------------------------------
 
 $Macro SRCDIR		"..\.."
+$Macro _UNITYSUBDIR "\vvis_sse2"
 $Include "$SRCDIR\utils\vvis\vvis_dll_base.vpc"
 
-$Project "Vvis DLL"
+$Project "Vvis DLL SSE2"
 {
 }

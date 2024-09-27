@@ -992,6 +992,10 @@ int ParseCommandLine( int argc, char **argv )
 			if ( i == argc - 1 )
 				break;
 		}
+		else if (!Q_stricmp(argv[i], "-force_sse2") || !Q_stricmp(argv[i], "-force_avx") || !Q_stricmp(argv[i], "-force_avx2"))
+		{
+			// ignored
+		}
 		else if (argv[i][0] == '-')
 		{
 			Warning("VBSP: Unknown option \"%s\"\n\n", argv[i]);
@@ -1088,7 +1092,18 @@ int RunVVis( int argc, char **argv )
 	double		start, end;
 
 	CmdLib_InitFileSystem( argv[ argc - 1 ] );
-	Msg( "Valve Software - vvis.exe (%s)\n", __DATE__ );
+	Msg("Valve Software - vvis.exe "
+#ifdef __AVX2__
+		"AVX2 "
+#elif defined(__AVX__)
+		"AVX "
+#else
+		"SSE2 "
+#endif
+#ifdef PLATFORM_64BITS
+		"64-bit "
+#endif
+		"(" __DATE__ ")\n");
 
 	verbose = false;
 

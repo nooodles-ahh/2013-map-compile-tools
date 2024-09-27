@@ -36,17 +36,32 @@ $Project "vbsp"
 
 $Project "vrad_dll"
 {
-	"utils\vrad\vrad_dll.vpc" [!$WIN64]
+	"utils\vrad\vrad_dll.vpc"
 }
 
 $Project "vrad_launcher"
 {
-	"utils\vrad_launcher\vrad_launcher.vpc" [!$WIN64]
+	"utils\vrad_launcher\vrad_launcher.vpc"
 }
 
 $Project "vvis_dll"
 {
-	"utils\vvis\vvis_dll.vpc"
+	"utils\vvis\vvis_dll.vpc" [!$WIN64]
+}
+
+$Project "vvis_sse2"
+{
+	"utils\vvis\vvis_dll_sse2.vpc" [$WIN64]
+}
+
+$Project "vvis_avx"
+{
+	"utils\vvis\vvis_dll_avx.vpc" [$WIN64]
+}
+
+$Project "vvis_avx2"
+{
+	"utils\vvis\vvis_dll_avx2.vpc" [$WIN64]
 }
 
 $Project "vvis_launcher"

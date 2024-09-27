@@ -5,8 +5,17 @@
 //-----------------------------------------------------------------------------
 
 $Macro SRCDIR		"..\.."
+$Macro _UNITYSUBDIR "\vvis_avx"
 $Include "$SRCDIR\utils\vvis\vvis_dll_base.vpc"
 
-$Project "Vvis DLL"
+$Configuration
+{
+	$Compiler
+	{
+		$EnableEnhancedInstructionSet		"Advanced Vector Extensions (/arch:AVX)"
+	}
+}
+
+$Project "Vvis DLL AVX"
 {
 }
