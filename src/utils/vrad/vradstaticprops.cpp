@@ -663,7 +663,7 @@ public:
 #ifdef PLATFORM_64BITS
 		// Read the file in
 		std::vector<std::byte> tempData;
-		tempData.reserve(g_pFileSystem->Size(hFile));
+		tempData.resize(g_pFileSystem->Size(hFile));
 		g_pFileSystem->Read(tempData.data(), tempData.size(), hFile);
 		g_pFileSystem->Close(hFile);
 

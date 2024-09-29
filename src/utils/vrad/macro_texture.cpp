@@ -51,7 +51,7 @@ CMacroTextureData* LoadMacroTextureFile( const char *pFilename )
 	// Read the file in.
 #ifdef PLATFORM_64BITS
 	std::vector<std::byte> tempData;
-	tempData.reserve(g_pFileSystem->Size(hFile));
+	tempData.resize(g_pFileSystem->Size(hFile));
 	g_pFileSystem->Read(tempData.data(), tempData.size(), hFile);
 	g_pFileSystem->Close(hFile);
 
