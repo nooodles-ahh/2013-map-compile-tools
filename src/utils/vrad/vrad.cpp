@@ -104,6 +104,7 @@ bool g_bLargeDispSampleRadius = false;
 
 bool g_bOnlyStaticProps = false;
 bool g_bShowStaticPropNormals = false;
+bool g_bDoFinal = false;
 
 
 float		gamma_value = 0.5;
@@ -2895,6 +2896,7 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		}
 		else if (!Q_stricmp(argv[i],"-final"))
 		{
+			g_bDoFinal = true;
 			g_flSkySampleScale = 16.0;
 		}
 		else if (!Q_stricmp(argv[i],"-extrasky"))

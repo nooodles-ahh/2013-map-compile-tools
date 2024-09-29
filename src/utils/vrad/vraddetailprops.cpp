@@ -670,8 +670,10 @@ void ComputeIndirectLightingAtPoint( Vector &position, Vector &normal, Vector &o
 
 	
 	int nSamples = NUMVERTEXNORMALS;
-	if ( do_fast || force_fast )
+	if (g_bDoFinal)
 		nSamples /= 4;
+	else if ( do_fast || force_fast )
+		nSamples /= 8;
 	else
 		nSamples *= g_flSkySampleScale;
 
