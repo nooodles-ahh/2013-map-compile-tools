@@ -1,0 +1,100 @@
+//-----------------------------------------------------------------------------
+//	VVIS_DLL.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$Macro SRCDIR		"..\.."
+$Macro OUTBINDIR	"$SRCDIR\..\game\bin"
+
+$Conditional "MPI" "1" [!$WIN64]
+
+$Include "$SRCDIR\vpc_scripts\source_dll_base.vpc"
+
+$Configuration
+{
+	$Compiler
+	{
+		$AdditionalIncludeDirectories		"$BASE,..\common,..\vmpi,..\vmpi\mysql\include"
+		$PreprocessorDefinitions			"$BASE;PROTECTED_THINGS_DISABLE"
+		$PreprocessorDefinitions			"$BASE;MPI" [$MPI]
+	}
+
+	$Linker
+	{
+		$AdditionalDependencies				"$BASE odbc32.lib odbccp32.lib ws2_32.lib"
+	}
+}
+
+$Project
+{
+	$Folder	"Source Files"
+	{
+		-$File	"$SRCDIR\public\tier0\memoverride.cpp"
+		$Folder "Common Files"
+		{
+			$File	"..\common\cmdlib.cpp"
+			$File	"..\common\bsplib.cpp"
+			$File	"..\common\pacifier.cpp"
+			$File	"..\common\scriplib.cpp"
+			$File	"..\common\scratchpad_helpers.cpp"
+			$File	"..\common\threads.cpp"
+			$File	"..\common\tools_minidump.cpp"
+			$File	"..\common\filesystem_tools.cpp"
+		}
+		
+		$Folder "MPI" [$MPI]
+		{
+			$File	"..\common\mpi_stats.cpp"
+			$File	"..\common\MySqlDatabase.cpp"
+			$File	"..\common\vmpi_tools_shared.cpp"
+			$File	"mpivis.cpp"
+		}
+		
+		$Folder "Public"
+		{
+			$File	"$SRCDIR\public\collisionutils.cpp"
+			$File	"$SRCDIR\public\filesystem_helpers.cpp"
+			$File	"$SRCDIR\public\filesystem_init.cpp"
+			$File	"$SRCDIR\public\loadcmdline.cpp"
+			$File	"$SRCDIR\public\lumpfiles.cpp"
+			$File	"$SRCDIR\public\scratchpad3d.cpp"
+			$File	"$SRCDIR\public\zip_utils.cpp"
+		}
+
+		$File	"flow.cpp"
+		$File	"vvis.cpp"
+		$File	"WaterDist.cpp"
+	}
+
+	$Folder	"Header Files"
+	{
+		$Folder "Common Files"
+		{
+			$File	"..\common\bsplib.h"
+			$File	"..\common\cmdlib.h"
+			$File	"..\common\scriplib.h"
+			$File	"..\common\pacifier.h"
+			$File	"..\common\threads.h"
+			$File	"..\common\tools_minidump.h"
+			$File	"..\common\filesystem_tools.h"
+		}
+		
+		$Folder "MPI" [$MPI]
+		{
+			$File	"mpivis.h"
+			$File	"..\common\ISQLDBReplyTarget.h"
+			$File	"..\common\MySqlDatabase.h"
+			$File	"..\vmpi\vmpi_distribute_work.h"
+			$File	"..\common\vmpi_tools_shared.h"
+		}
+		
+		$File	"vis.h"
+	}
+
+	$Folder	"Link Libraries"
+	{
+		$Lib mathlib
+		$Lib vmpi [$MPI]
+	}
+}

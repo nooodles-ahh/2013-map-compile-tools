@@ -284,6 +284,7 @@ extern IIncremental *g_pIncremental;	// null if not doing incremental lighting
 extern bool			g_bDumpPropLightmaps;
 
 extern float g_flSkySampleScale;								// extra sampling factor for indirect light
+extern bool g_bDoFinal;
 
 extern bool g_bLargeDispSampleRadius;
 extern bool g_bStaticPropPolys;
@@ -398,7 +399,7 @@ void AddBrushesForRayTrace ( void );
 void BaseLightForFace( dface_t *f, Vector& light, float *parea, Vector& reflectivity );
 void CreateDirectLights (void);
 void GetPhongNormal( int facenum, Vector const& spot, Vector& phongnormal );
-int LightForString( char *pLight, Vector& intensity );
+int LightForString( const char *pLight, Vector& intensity );
 void MakeTransfer( int ndxPatch1, int ndxPatch2, transfer_t *all_transfers );
 void MakeScales( int ndxPatch, transfer_t *all_transfers );
 

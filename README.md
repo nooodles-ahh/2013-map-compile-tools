@@ -5,14 +5,19 @@
 - Support for SP/MP/TF2 on single code base
 
 ## TODO
-- Add Propper
 - Test (lol)
 - Check the SSE/SSE2 versions of math functions aren't causing any bugs
 - Attribute every feature and change where possible
 
+## Global changes
+- C++20
+- Use a modified VPC to remove registry key requirement
+- Reorganised VVIS and VRAD .vpc files
+
 ## VBSP
-### New/Community features
+### New/Community features & fixes
 - [Parallax corrected cubemap support](https://developer.valvesoftware.com/wiki/Parallax_Corrected_Cubemaps), specially [Mapbase's implementation](https://github.com/mapbase-source/source-sdk-2013/)
+- Materialsystem is loaded when using the `VPROJECT` environment variable to determine the currently active game
 
 ### Replicated Slammin' features
 - [x] Enabled SSE2
@@ -33,16 +38,27 @@
 - [ ] ~~`-visgranularity`, lets you automatically place hint brushes in your map, syntax is `-visgranularity X Y Z`. X, Y and Z can be any integer value, for example, -visgranularity 0 0 512 would create a VIS split every 512 units vertically. (CSGO)~~ Removed
 - [x] Subsitution of propper_models for prop_statics after Propper has run.
 
+## Propper
+- Merged with VBSP code but is its own product
+- Probably works
+
 ## VVIS
+### New/Community features & fixes
+- 64-bit support! 3 different versions compiled with different instruction sets: SSE2, AVX and AVX2, which are automatically selected based on your CPU's capabilities. This has not been extensively tested but this should almost always give reasonably faster compile times
+
 ### Replicated Slammin' features
 - [x] Enabled SSE2
 
 ## VRAD
-### New/Community features
+### New/Community features & fixes
 - [Removed debug counter that cripples lighting compile times](https://github.com/ValveSoftware/source-sdk-2013/pull/436)
 - [Unlimited texlight definitions](https://github.com/Petercov/Source-PlusPlus/commit/d70d401d0006dec4c9600c0de7ec2216a205b1e0)
 - [`-AllowSkyboxSample`](https://github.com/Petercov/Source-PlusPlus/commit/0354b917cf8548edf928cb7f92a41eace376eb39) which mulitiplies your chosen ambient light color by the color of the 2D skybox texture
-- `"compresslightmaps"` keyvalue for `prop_static`. Not particularly recommended at lower lightmap resolutions as it's extremely crusty. An option for highly specific situations or of last resort.
+- `"compresslightmaps"` keyvalue for `prop_static`. Not particularly recommended at lower lightmap resolutions as it's extremely crusty. An option for highly specific situations or of last resort
+- Worldlight's made accessible as gamelumps. Useful for if you're using bsp compression and want [Dynamic RTT shadows](https://developer.valvesoftware.com/wiki/Dynamic_RTT_shadow_angles_in_Source_2007) to work _TODO include modified worldlight.cpp_
+- Fixed texture shadows failing with multiple `$cdmaterials` defines _TODO verify this still works_
+- 64 bit support! This has resulted in a performance gain so small it might as well be within margin of error. If you're using absurdly high lightmap resolutions you might want this
+- Reduced lighting samples for props when not compiling with `-final`. Reduces compile times if you have a lot of props with lightmaps
 
 ### Replicated Slammin' features
 - [x] Enabled SSE2
@@ -68,3 +84,7 @@
 - [ ] Improved description of options when showing help.
 - [ ] `-skyboxrecurse`, 3D skybox recursion is disabled by default now
 - [x] HDR is enabled by default
+
+## Additional credits
+- [alliedmodders/hl2sdk](https://github.com/alliedmodders/hl2sdk/tree/tf2) - code changes and tier0 and vstdlib libs for 64-bit support
+- [craftablescience/sourcepp](https://github.com/craftablescience/sourcepp) - vtfpp for loading VTF's under 64-bit

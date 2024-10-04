@@ -103,7 +103,7 @@ unsigned int CLZMA::Uncompress( unsigned char *pInput, unsigned char *pOutput )
 		return 0;
 	}
 
-	return outProcessed;
+	return pHeader->actualSize;
 }
 
 CLZMAStream::CLZMAStream()

@@ -65,7 +65,7 @@ const unsigned TT_INFINITE = 0xffffffff;
 
 #endif // NO_THREAD_LOCAL
 
-typedef unsigned long ThreadId_t;
+typedef uintp ThreadId_t;
 
 //-----------------------------------------------------------------------------
 //
@@ -671,7 +671,7 @@ public:
 	}
 
 private:
-	FORCEINLINE bool TryLockInline( const uint32 threadId ) volatile
+	FORCEINLINE bool TryLockInline( const ThreadId_t threadId ) volatile
 	{
 		if ( threadId != m_ownerID && !ThreadInterlockedAssignIf( (volatile long *)&m_ownerID, (long)threadId, 0 ) )
 			return false;
@@ -681,12 +681,12 @@ private:
 		return true;
 	}
 
-	bool TryLock( const uint32 threadId ) volatile
+	bool TryLock( const ThreadId_t threadId ) volatile
 	{
 		return TryLockInline( threadId );
 	}
 
-	PLATFORM_CLASS void Lock( const uint32 threadId, unsigned nSpinSleepTime ) volatile;
+	PLATFORM_CLASS void Lock( const ThreadId_t threadId, unsigned nSpinSleepTime ) volatile;
 
 public:
 	bool TryLock() volatile
@@ -742,7 +742,11 @@ public:
 		if ( !m_depth )
 		{
 			ThreadMemoryBarrier();
+#ifdef PLATFORM_64BITS
+			_InterlockedExchange64((intp volatile*)&m_ownerID, 0);
+#else
 			ThreadInterlockedExchange( &m_ownerID, 0 );
+#endif
     	}
     }
 
@@ -755,10 +759,10 @@ public:
 	bool AssertOwnedByCurrentThread()	{ return true; }
 	void SetTrace( bool )				{}
 
-	uint32 GetOwnerId() const			{ return m_ownerID;	}
+	ThreadId_t GetOwnerId() const			{ return m_ownerID;	}
 	int	GetDepth() const				{ return m_depth; }
 private:
-	volatile uint32 m_ownerID;
+	volatile ThreadId_t m_ownerID;
 	int				m_depth;
 };
 

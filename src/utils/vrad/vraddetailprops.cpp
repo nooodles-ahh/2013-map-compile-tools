@@ -365,7 +365,7 @@ public:
 	CLightSurface(int iThread) : m_pSurface(0), m_HitFrac(1.0f), m_bHasLuxel(false), m_iThread(iThread) {}
 
 	// call back with a node and a context
-	bool EnumerateNode( int node, Ray_t const& ray, float f, int context )
+	bool EnumerateNode( int node, Ray_t const& ray, float f, intp context )
 	{
 		dface_t* pSkySurface = 0;
 
@@ -414,7 +414,7 @@ public:
 	}
 
 	// call back with a leaf and a context
-	virtual bool EnumerateLeaf( int leaf, Ray_t const& ray, float start, float end, int context )
+	virtual bool EnumerateLeaf( int leaf, Ray_t const& ray, float start, float end, intp context )
 	{
 		bool hit = false;
 		dleaf_t* pLeaf = &dleafs[leaf];
@@ -670,8 +670,10 @@ void ComputeIndirectLightingAtPoint( Vector &position, Vector &normal, Vector &o
 
 	
 	int nSamples = NUMVERTEXNORMALS;
-	if ( do_fast || force_fast )
+	if (g_bDoFinal)
 		nSamples /= 4;
+	else if ( do_fast || force_fast )
+		nSamples /= 8;
 	else
 		nSamples *= g_flSkySampleScale;
 
@@ -965,6 +967,7 @@ void UnserializeDetailPropLighting( int lumpID, int lumpVersion, CUtlVector<Deta
 
 DetailObjectLump_t *g_pMPIDetailProps = NULL;
 
+#ifdef MPI
 void VMPI_ProcessDetailPropWU( int iThread, int iWorkUnit, MessageBuffer *pBuf )
 {
 	CUtlVector<DetailPropLightstylesLump_t> *pDetailPropLump = s_pDetailPropLightStyleLump;
@@ -1005,6 +1008,7 @@ void VMPI_ReceiveDetailPropWU( int iWorkUnit, MessageBuffer *pBuf, int iWorker )
 		pBuf->read( &l->m_Style, sizeof( l->m_Style ) );
 	}
 }
+#endif
 	
 //-----------------------------------------------------------------------------
 // Computes lighting for the detail props

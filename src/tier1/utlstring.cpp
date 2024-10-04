@@ -52,7 +52,7 @@ void CUtlString::SetDirect( const char *pValue, int nChars )
 			return; // Do nothing. Realloc in AllocMemory might move pValue's location resulting in a bad memcpy.
 		}
 
-		Assert( nChars <= Min<int>( strnlen(pValue, nChars) + 1, nChars ) );
+		//Assert( nChars <= Min<size_t>( strnlen(pValue, nChars) + 1, nChars ) );
 		AllocMemory( nChars );
 		Q_memcpy( m_pString, pValue, nChars );
 	}

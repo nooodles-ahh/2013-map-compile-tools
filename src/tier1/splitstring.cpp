@@ -52,7 +52,7 @@ void CSplitString::Construct( const char *pString, const char **pSeparators, int
 		if ( pFirstSeparator )
 		{
 			// Split on this separator and continue on.
-			int separatorLen = strlen( pSeparators[iFirstSeparator] );
+			int separatorLen = V_strlen( pSeparators[iFirstSeparator] );
 			if ( pFirstSeparator > pCurPos )
 			{
 				//////////////////////////////////////////////////////////////////////////

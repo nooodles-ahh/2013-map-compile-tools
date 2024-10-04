@@ -28,8 +28,6 @@ class CDispVector : public CUtlVector<T, CUtlMemoryAligned<T,16> >
 };
 #endif
 
-FORWARD_DECLARE_HANDLE( memhandle_t );
-
 #define DISPCOLL_TREETRI_SIZE		MAX_DISPTRIS
 #define DISPCOLL_DIST_EPSILON		0.03125f
 #define DISPCOLL_ROOTNODE_INDEX		0

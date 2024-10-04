@@ -297,7 +297,9 @@ void	PrintBSPFileSizes(void);
 void	PrintBSPPackDirectory(void);
 void	ReleasePakFileLumps(void);
 
+#if 0
 bool	RepackBSPCallback_LZMA( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer );
+#endif
 bool	RepackBSP( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer, CompressFunc_t pCompressFunc, IZip::eCompressionType packfileCompression );
 bool	SwapBSPFile( const char *filename, const char *swapFilename, bool bSwapOnLoad, VTFConvertFunc_t pVTFConvertFunc, VHVFixupFunc_t pVHVFixupFunc, CompressFunc_t pCompressFunc );
 
@@ -313,15 +315,15 @@ void	UnparseEntities (void);
 void	PrintEntity (entity_t *ent);
 
 void 	SetKeyValue (entity_t *ent, const char *key, const char *value);
-char 	*ValueForKey (entity_t *ent, char *key);
+const char 	*ValueForKey (entity_t *ent, const char *key);
 // will return "" if not present
-int		IntForKey (entity_t *ent, char *key);
-int		IntForKeyWithDefault(entity_t *ent, char *key, int nDefault );
-vec_t	FloatForKey (entity_t *ent, char *key);
-vec_t	FloatForKeyWithDefault (entity_t *ent, char *key, float default_value);
-void 	GetVectorForKey (entity_t *ent, char *key, Vector& vec);
-void 	GetVector2DForKey (entity_t *ent, char *key, Vector2D& vec);
-void 	GetAnglesForKey (entity_t *ent, char *key, QAngle& vec);
+int		IntForKey (entity_t *ent, const char *key);
+int		IntForKeyWithDefault(entity_t *ent, const char *key, int nDefault );
+vec_t	FloatForKey (entity_t *ent, const char *key);
+vec_t	FloatForKeyWithDefault (entity_t *ent, const char *key, float default_value);
+void 	GetVectorForKey (entity_t *ent, const char *key, Vector& vec);
+void 	GetVector2DForKey (entity_t *ent, const char *key, Vector2D& vec);
+void 	GetAnglesForKey (entity_t *ent, const char *key, QAngle& vec);
 epair_t *ParseEpair (void);
 void StripTrailing (char *e);
 
@@ -361,16 +363,16 @@ class IBSPNodeEnumerator
 {
 public:
 	// call back with a node and a context
-	virtual bool EnumerateNode( int node, Ray_t const& ray, float f, int context ) = 0;
+	virtual bool EnumerateNode( int node, Ray_t const& ray, float f, intp context ) = 0;
 
 	// call back with a leaf and a context
-	virtual bool EnumerateLeaf( int leaf, Ray_t const& ray, float start, float end, int context ) = 0;
+	virtual bool EnumerateLeaf( int leaf, Ray_t const& ray, float start, float end, intp context ) = 0;
 };
 
 //-----------------------------------------------------------------------------
 // Enumerates nodes + leafs in front to back order...
 //-----------------------------------------------------------------------------
-bool EnumerateNodesAlongRay( Ray_t const& ray, IBSPNodeEnumerator* pEnum, int context );
+bool EnumerateNodesAlongRay( Ray_t const& ray, IBSPNodeEnumerator* pEnum, intp context );
 
 
 //-----------------------------------------------------------------------------

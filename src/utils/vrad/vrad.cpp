@@ -12,9 +12,7 @@
 #include "physdll.h"
 #include "lightmap.h"
 #include "tier1/strtools.h"
-#include "vmpi.h"
 #include "macro_texture.h"
-#include "vmpi_tools_shared.h"
 #include "leaf_ambient_lighting.h"
 #include "tools_minidump.h"
 #include "loadcmdline.h"
@@ -26,10 +24,17 @@
 #include "materialsystem/imaterialvar.h"
 #include "utlbuffer.h"
 #include "gamebspfile.h"
+#ifdef MPI
+#include "vmpi.h"
+#include "vmpi_tools_shared.h"
+#endif
 
 #define ALLOWDEBUGOPTIONS (0 || _DEBUG)
 
 static FileHandle_t pFpTrans = NULL;
+
+IFileSystem* g_pFullFileSystem = nullptr;
+IMaterialSystem* g_pMaterialSystem = nullptr;
 
 /*
 
@@ -99,6 +104,7 @@ bool g_bLargeDispSampleRadius = false;
 
 bool g_bOnlyStaticProps = false;
 bool g_bShowStaticPropNormals = false;
+bool g_bDoFinal = false;
 
 
 float		gamma_value = 0.5;
@@ -1266,8 +1272,8 @@ void MakeScales ( int ndxPatch, transfer_t *all_transfers )
 	ThreadUnlock ();
 }
 
+#ifndef PLATFORM_64BITS
 IVTFTexture *g_pSkyboxCube = nullptr;
-
 //-----------------------------------------------------------------------------
 // Loads VTF files
 //-----------------------------------------------------------------------------
@@ -1547,10 +1553,11 @@ void convert_xyz_to_cube_uv( float x, float y, float z, int *index, float *u, fl
 	*u = 0.5f * ( uc / maxAxis + 1.0f );
 	*v = 0.5f * ( vc / maxAxis + 1.0f );
 }
+#endif
 
 void SampleSkyboxCubeSSE( FourVectors const &vNormals, FourVectors &vColors )
 {
-	
+#ifndef PLATFORM_64BITS
 	if ( g_pSkyboxCube != nullptr )
 	{
 		Vector  vecColors[4] = { Vector( 1.f ) };
@@ -1577,10 +1584,12 @@ void SampleSkyboxCubeSSE( FourVectors const &vNormals, FourVectors &vColors )
 
 		vColors = FourVectors( vecColors[0], vecColors[1], vecColors[2], vecColors[3] );
 	}
+#endif
 }
 
 void SampleSkyboxCube( const Vector &vecNormal, Vector &vColor )
 {
+#ifndef PLATFORM_64BITS
 	if ( g_pSkyboxCube != nullptr )
 	{
 		int iFace = 0;
@@ -1602,6 +1611,7 @@ void SampleSkyboxCube( const Vector &vecNormal, Vector &vColor )
 	}
 	else
 		vColor.Init( 1.f, 1.f, 1.f );
+#endif
 }
 
 /*
@@ -2171,7 +2181,9 @@ void RadWorld_Start()
 	// set up sky cameras
 	ProcessSkyCameras();
 
+#ifndef PLATFORM_64BITS
 	LoadSkyboxCubeMap();
+#endif
 }
 
 
@@ -2365,12 +2377,14 @@ bool RadWorld_Go()
 	}
 
 	// build initial facelights
+#ifdef MPI
 	if (g_bUseMPI) 
 	{
 		// RunThreadsOnIndividual (numfaces, true, BuildFacelights);
 		RunMPIBuildFacelights();
 	}
 	else 
+#endif
 	{
 		RunThreadsOnIndividual (numfaces, true, BuildFacelights);
 	}
@@ -2425,13 +2439,17 @@ bool RadWorld_Go()
 		StaticDispMgr()->EndTimer();
 
 		// blend bounced light into direct light and save
+#ifdef MPI
 		VMPI_SetCurrentStage( "FinalLightFace" );
 		if ( !g_bUseMPI || g_bMPIMaster )
+#endif
 			RunThreadsOnIndividual (numfaces, true, FinalLightFace);
-		
+
+#ifdef MPI
 		// Distribute the lighting data to workers.
 		VMPI_DistributeLightData();
-			
+#endif
+
 		Msg("FinalLightFace Done\n"); fflush(stdout);
 	}
 
@@ -2488,7 +2506,9 @@ void VRAD_LoadBSP( char const *pFilename )
 	// so we prepend qdir here.
 	strcpy( source, ExpandPath( source ) );
 
+#ifdef MPI
 	if ( !g_bUseMPI )
+#endif
 	{
 		// Setup the logfile.
 		char logFile[512];
@@ -2526,10 +2546,13 @@ void VRAD_LoadBSP( char const *pFilename )
 	Q_DefaultExtension(source, ".bsp", sizeof( source ));
 
 	Msg( "Loading %s\n", source );
+#ifdef MPI
 	VMPI_SetCurrentStage( "LoadBSPFile" );
+#endif
 	LoadBSPFile (source);
 
 	// Add this bsp to our search path so embedded resources can be found
+#ifdef MPI
 	if ( g_bUseMPI && g_bMPIMaster )
 	{
 		// MPI Master, MPI workers don't need to do anything
@@ -2537,6 +2560,7 @@ void VRAD_LoadBSP( char const *pFilename )
 		g_pOriginalPassThruFileSystem->AddSearchPath(source, "MOD", PATH_ADD_TO_HEAD);
 	}
 	else if ( !g_bUseMPI )
+#endif
 	{
 		// Non-MPI
 		g_pFullFileSystem->AddSearchPath(source, "GAME", PATH_ADD_TO_HEAD);
@@ -2688,7 +2712,9 @@ void VRAD_Finish()
 	}
 
 	Msg( "Writing %s\n", source );
+#ifdef MPI
 	VMPI_SetCurrentStage( "WriteBSPFile" );
+#endif
 	WriteBSPFile(source);
 
 	if ( g_bDumpPatches )
@@ -2702,11 +2728,13 @@ void VRAD_Finish()
 		}
 	}
 
+#ifndef PLATFORM_64BITS
 	if ( g_pSkyboxCube )
 	{
 		DestroyVTFTexture( g_pSkyboxCube );
 		g_pSkyboxCube = nullptr;
 	}
+#endif
 
 	CloseDispLuxels();
 
@@ -2868,6 +2896,7 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		}
 		else if (!Q_stricmp(argv[i],"-final"))
 		{
+			g_bDoFinal = true;
 			g_flSkySampleScale = 16.0;
 		}
 		else if (!Q_stricmp(argv[i],"-extrasky"))
@@ -3191,7 +3220,11 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 		else if ( !Q_strncasecmp( argv[i], "-mpi", 4 ) || !Q_strncasecmp( argv[i-1], "-mpi", 4 ) )
 		{
 			if ( stricmp( argv[i], "-mpi" ) == 0 )
+#ifdef MPI
 				g_bUseMPI = true;
+#else
+				Warning("VMPI support not available in this build.\n");
+#endif
 		
 			// Any other args that start with -mpi are ok too.
 			if ( i == argc - 1 && V_stricmp( argv[i], "-mpi_ListParams" ) != 0 )
@@ -3322,11 +3355,18 @@ void PrintUsage( int argc, char **argv )
 
 int RunVRAD( int argc, char **argv )
 {
-#if defined(_MSC_VER) && ( _MSC_VER >= 1310 )
-	Msg("Valve Software - vrad.exe SSE (" __DATE__ ")\n" );
+	Msg("Valve Software - vrad.exe "
+#ifdef __AVX2__
+		"AVX2 "
+#elif defined(__AVX__)
+		"AVX "
 #else
-	Msg("Valve Software - vrad.exe (" __DATE__ ")\n" );
+		"SSE2 "
 #endif
+#ifdef PLATFORM_64BITS
+		"64-bit "
+#endif
+		"(" __DATE__ ")\n");
 
 	Msg("\n      Valve Radiosity Simulator     \n");
 
@@ -3341,14 +3381,12 @@ int RunVRAD( int argc, char **argv )
 		CmdLib_Exit( 1 );
 	}
 
-	// Initialize the filesystem, so additional commandline options can be loaded
 	Q_StripExtension( argv[ i ], source, sizeof( source ) );
-	CmdLib_InitFileSystem( argv[ i ] );
 	Q_FileBase( source, source, sizeof( source ) );
 
 	static char	materialPath[1024];
 	sprintf( materialPath, "%smaterials", gamedir );
-	InitMaterialSystem( materialPath, CmdLib_GetFileSystemFactory() );
+	//InitMaterialSystem( materialPath, CmdLib_GetFileSystemFactory() );
 	Msg( "materialPath: %s\n", materialPath );
 
 	VRAD_LoadBSP( argv[i] );
@@ -3364,7 +3402,9 @@ int RunVRAD( int argc, char **argv )
 
 	VRAD_Finish();
 
+#ifdef MPI
 	VMPI_SetCurrentStage( "master done" );
+#endif
 
 	DeleteCmdLine( argc, argv );
 	ShutdownMaterialSystem();
@@ -3376,13 +3416,14 @@ int RunVRAD( int argc, char **argv )
 int VRAD_Main(int argc, char **argv)
 {
 	g_pFileSystem = NULL;	// Safeguard against using it before it's properly initialized.
+	CmdLib_InitFileSystem(argv[argc - 1]);
 
 	VRAD_Init();
 
+#ifdef MPI
 	// This must come first.
 	VRAD_SetupMPI( argc, argv );
 
-#if !defined( _DEBUG )
 	if ( g_bUseMPI && !g_bMPIMaster )
 	{
 		SetupToolsMinidumpHandler( VMPI_ExceptionFilter );

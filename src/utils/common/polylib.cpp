@@ -31,53 +31,26 @@ void pw(winding_t *w)
 		printf ("(%5.1f, %5.1f, %5.1f)\n",w->p[i][0], w->p[i][1],w->p[i][2]);
 }
 
-winding_t *winding_pool[MAX_POINTS_ON_WINDING+4];
-
 /*
 =============
 AllocWinding
 =============
 */
-winding_t *AllocWinding (int points)
-{
-	winding_t	*w;
 
-	if (numthreads == 1)
-	{
-		c_winding_allocs++;
-		c_winding_points += points;
-		c_active_windings++;
-		if (c_active_windings > c_peak_windings)
-			c_peak_windings = c_active_windings;
-	}
-	ThreadLock();
-	if (winding_pool[points])
-	{
-		w = winding_pool[points];
-		winding_pool[points] = w->next;
-	}
-	else
-	{
-		w = (winding_t *)malloc(sizeof(*w));
-		w->p = (Vector *)calloc( points, sizeof(Vector) );
-	}
-	ThreadUnlock();
-	w->numpoints = 0; // None are occupied yet even though allocated.
-	w->maxpoints = points;
-	w->next = NULL;
-	return w;
+winding_t *AllocWinding(int points)
+{
+    winding_t *w = (winding_t *)malloc(sizeof(*w));
+    w->p = (Vector *)calloc(points, sizeof(Vector));
+    w->numpoints = 0;
+    w->maxpoints = points;
+    w->next = NULL;
+    return w;
 }
 
-void FreeWinding (winding_t *w)
+void FreeWinding(winding_t *w)
 {
-	if (w->numpoints == 0xdeaddead)
-		Error ("FreeWinding: freed a freed winding");
-	
-	ThreadLock();
-	w->numpoints = 0xdeaddead; // flag as freed
-	w->next = winding_pool[w->maxpoints];
-	winding_pool[w->maxpoints] = w;
-	ThreadUnlock();
+    free(w->p);
+    free(w);
 }
 
 /*

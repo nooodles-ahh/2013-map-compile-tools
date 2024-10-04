@@ -1,0 +1,21 @@
+//-----------------------------------------------------------------------------
+//	VVIS_DLL.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$Macro SRCDIR		"..\.."
+$Macro _UNITYSUBDIR "\vvis_avx2"
+$Include "$SRCDIR\utils\vvis\vvis_dll_base.vpc"
+
+$Configuration
+{
+	$Compiler
+	{
+		$EnableEnhancedInstructionSet		"Advanced Vector Extensions 2 (/arch:AVX2)"
+	}
+}
+
+$Project "Vvis DLL AVX2"
+{
+}

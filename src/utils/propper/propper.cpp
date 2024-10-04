@@ -31,7 +31,7 @@
 int numverts = 0;
 bool logging = false;
 
-char *sourcefolder;
+const char *sourcefolder;
 bool dobodygroup = false;
 
 bool objExport = false;
@@ -736,7 +736,7 @@ void MakeSMD( bool phys, char *SMDfilename, int ent, float weldvertices, model_t
 void model_t::getMapProperties() {
 	//Look for shit to apply to this model
 	entity_t *mapent;
-	char *pClassName;
+	const char *pClassName;
 	for ( int i = 0; i < num_entities; i++ ) {
 		mapent = &entities[i];
 		pClassName = ValueForKey( mapent, "classname" );

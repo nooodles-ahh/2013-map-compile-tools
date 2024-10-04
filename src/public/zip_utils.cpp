@@ -1534,7 +1534,11 @@ void CZipFile::SaveDirectory( IWriteStream& stream )
 				free( e->m_pData );
 
 				// temp hackery for the logic below to succeed
+#ifdef PLATFORM_64BITS
+				e->m_pData = (void*)0xFFFFFFFFFFFFFFFF;
+#else
 				e->m_pData = (void*)0xFFFFFFFF;
+#endif
 			}
 		}
 	}

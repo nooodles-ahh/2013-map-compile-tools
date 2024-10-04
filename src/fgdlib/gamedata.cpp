@@ -68,7 +68,7 @@ static bool DoGetToken(TokenReader &tr, char **ppszStore, int nSize, trtoken_t t
 	//
 	// Check for a bad token type.
 	//
-	char *pszStore = *ppszStore;
+	const char *pszStore = *ppszStore;
 	bool bBadTokenType = false;
 	if ((ttype != ttexpecting) && (ttexpecting != TOKENNONE))
 	{
@@ -88,7 +88,7 @@ static bool DoGetToken(TokenReader &tr, char **ppszStore, int nSize, trtoken_t t
 		// We didn't get the expected token type but no expected
 		// string was specified.
 		//
-		char *pszTokenName;
+		const char *pszTokenName;
 		switch (ttexpecting)
 		{
 			case IDENT:
