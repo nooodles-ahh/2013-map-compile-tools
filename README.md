@@ -5,7 +5,6 @@
 - Support for SP/MP/TF2 on single code base
 
 ## TODO
-- Add Propper
 - Test (lol)
 - Check the SSE/SSE2 versions of math functions aren't causing any bugs
 - Attribute every feature and change where possible
@@ -38,6 +37,10 @@
 - [x] `-blocksize`, lets you customise the size of visleaf splitting "blocks", default is every 1024 units ~~Removed~~ Readded
 - [ ] ~~`-visgranularity`, lets you automatically place hint brushes in your map, syntax is `-visgranularity X Y Z`. X, Y and Z can be any integer value, for example, -visgranularity 0 0 512 would create a VIS split every 512 units vertically. (CSGO)~~ Removed
 - [x] Subsitution of propper_models for prop_statics after Propper has run.
+
+## Propper
+- Merged with VBSP code but is its own product
+- Probably works
 
 ## VVIS
 ### New/Community features & fixes
