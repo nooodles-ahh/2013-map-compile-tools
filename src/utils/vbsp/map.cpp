@@ -1784,8 +1784,13 @@ ChunkFileResult_t CMapFile::LoadEntityCallback(CChunkFile *pFile, int nParam)
 			m->qc_modelname = ValueForKey( mapent, "modelname" );
 			m->mass = FloatForKey( mapent, "mass" );
 			V_FileBase(m->qc_modelname, &m->basename[0], 128);
+
+			// the whole sourcefolder thing is very janky and I will need to change this later
 			sourcefolder = ValueForKey( mapent, "sourcefolder" );
-			ConMsg("TODO: Fix slashes: %s\n", sourcefolder);
+			char* sourcefolderfixed = V_strdup(sourcefolder);
+			V_FixSlashes(sourcefolderfixed);
+			sourcefolder = sourcefolderfixed;
+
 			m->qc_cdmaterials = ValueForKey( mapent, "materialpath" );
 			m->qc_surfaceprop = ValueForKey( mapent, "surfaceprop" );
 			m->phys_entname = ValueForKey( mapent, "physmodel" );
